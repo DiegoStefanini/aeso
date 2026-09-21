@@ -61,7 +61,7 @@
   #text(14pt)[Diego Stefanini — prof. Marco Danelutto, a.a. 2026-27]
 ]
 #v(1cm)
-#outline()
+#outline(depth: 2)
 
 = Fondamenti dei sistemi di elaborazione
 
