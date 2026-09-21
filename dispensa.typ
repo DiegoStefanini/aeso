@@ -63,9 +63,11 @@
 #v(1cm)
 #outline()
 
-= Memoria, processore, istruzioni #text(10pt, weight: "regular")[(16 set, ore 1-2)]
+= Fondamenti dei sistemi di elaborazione
 
-== Il modello
+== Memoria, processore, istruzioni
+
+=== Il modello
 
 Un calcolatore sono due pezzi: la *memoria* M e il *processore* P, che si parlano.
 
@@ -95,7 +97,7 @@ Un calcolatore sono due pezzi: la *memoria* M e il *processore* P, che si parlan
   content((3.2, -3.25), text(8pt, fill: red)[M[PC]])
 }), [Il PC contiene l'indirizzo della prossima istruzione da prendere in memoria])
 
-== Il ciclo del processore
+=== Il ciclo del processore
 
 Il processore ripete per sempre questi quattro passi:
 
@@ -108,7 +110,7 @@ while (true) {
 }
 ```
 
-== Tipi di istruzione
+=== Tipi di istruzione
 
 Quali istruzioni esistono dipende dal processore (x86, ARM, RISC-V), ma i tipi sono sempre tre:
 
@@ -130,7 +132,7 @@ inizio:  ADD R0, R0, R0   ← PC
 ```,
 [Il PC scende di un'istruzione alla volta; il *salto* lo rimette su `inizio`, quindi il programma ricomincia.])
 
-== Clock e legge di Moore
+=== Clock e legge di Moore
 
 #grid(columns: (1.2fr, 1fr), gutter: 1.5em, align: horizon,
 figura(canvas(length: 0.8cm, {
@@ -154,9 +156,9 @@ figura(canvas(length: 0.8cm, {
 
 #base[legge di Moore][Il numero di transistor che si riescono a mettere su un chip raddoppia circa ogni due anni. È per questo che si passa dai µm ai nm e da un processore a più processori sullo stesso chip.]
 
-= Astrazione e numeri binari #text(10pt, weight: "regular")[(21 set, ore 3-4)]
+== Astrazione
 
-== Livelli di astrazione
+=== Livelli di astrazione
 
 #let az = rgb("#eef4ff")
 #let descr(t) = text(fill: luma(80))[ — #t]
@@ -172,7 +174,7 @@ figura(canvas(length: 0.8cm, {
   ([Fisica #descr[questi ultimi 3 non li facciamo]], luma(230)),
 ))
 
-== Interfacce
+=== Interfacce
 
 #grid(columns: (auto, 1fr), gutter: 1.5em, align: horizon,
 stack(
@@ -200,7 +202,7 @@ Il livello i usa solo l'interfaccia, non sa com'è fatto sotto.])
    #v-verde \ #text(8pt)[Rosetta traduce \ le istruzioni x86 in ARM]],
 ))
 
-== Gerarchia, modularità, regolarità
+=== Gerarchia, modularità, regolarità
 
 - *Gerarchia*: il sistema è diviso in livelli (sopra).
 - *Modularità*: ogni livello è fatto di moduli con un compito preciso.
@@ -268,7 +270,9 @@ canvas(length: 0.8cm, {
 }),
 [*MUX*: il segnale che entra di lato sceglie quale ingresso passa in uscita, x (se vale 0) o y (se vale 1).])
 
-== Sistemi di numerazione posizionali
+== Numeri binari
+
+=== Sistemi di numerazione posizionali
 
 I circuiti digitali lavorano in *binario*: ogni segnale vale 0 o 1.
 
@@ -282,7 +286,7 @@ In un sistema posizionale *conta l'ordine delle cifre*: la stessa cifra vale di 
 
 Esempio: $13_10 != 31_10$ e $10_2 != 01_2$. Stesse cifre, ordine diverso, numero diverso.
 
-=== Da decimale a binario
+==== Da decimale a binario
 
 Divido per 2 finché arrivo a 1, poi leggo i resti *dal basso verso l'alto*.
 
@@ -302,7 +306,7 @@ Divido per 2 finché arrivo a 1, poi leggo i resti *dal basso verso l'alto*.
   ) + align(center)[$7 = 111_2$],
 ))
 
-== Somma e prodotto in binario
+=== Somma e prodotto in binario
 
 Come in decimale, ma $1 + 1 = 10_2$: scrivo 0 e riporto 1.
 
@@ -318,7 +322,7 @@ Il prodotto si fa in colonna come in decimale. In binario ogni riga è molto sem
   [#conto(op: "×", "1010", "0100", "0000", "0000·", "1010··", "0000···", "0101000") \ #text(9pt)[10 × 4 = 40 = 32 + 8]],
 ))
 
-== Numeri negativi: modulo e segno
+=== Numeri negativi: modulo e segno
 
 Il primo bit è il *segno* (0 = +, 1 = −), gli altri sono il *valore assoluto*.
 
@@ -341,7 +345,7 @@ Esempi: $+12 + 12 = +24$, #h(0.5em) $-12 + (-12) = -24$, #h(0.5em) $-12 + 7 = -5
 
 #nota[Servono confronti e sottrazioni: il circuito che somma diventa complicato. Il complemento a 2 risolve questo problema.]
 
-== Complemento a 2
+=== Complemento a 2
 
 Per passare da $n$ a $-n$:
 
@@ -356,7 +360,7 @@ Vale anche al contrario: rifacendo "nego + 1" su $-n$ torno a $n$. Così, se un 
 
 Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
 
-=== Esempio: $-12 + 7$ (5 bit)
+==== Esempio: $-12 + 7$ (5 bit)
 
 #align(center, grid(columns: 3, gutter: 2.5em, align: bottom,
   [#passi(("12", "01100"), ("nego", "10011"), ("+1", "10100")) \ #text(9pt)[−12]],
@@ -364,7 +368,7 @@ Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
   [#passi(("somma", "11011"), ("nego", "00100"), ("+1", "00101")) \ #text(9pt)[inizia per 1, è negativo: \ vale −5 ✓]],
 ))
 
-=== Esempio: $-5 + (-3)$ (6 bit)
+==== Esempio: $-5 + (-3)$ (6 bit)
 
 #align(center, grid(columns: 4, gutter: 2em, align: bottom,
   [#passi(("5", "000101"), ("nego", "111010"), ("+1", "111011")) \ #text(9pt)[−5]],
