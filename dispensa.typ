@@ -67,8 +67,6 @@
 
 == Memoria, processore, istruzioni
 
-=== Il modello
-
 Un calcolatore sono due pezzi: la *memoria* M e il *processore* P, che si parlano.
 
 #figura(canvas(length: 1cm, {
@@ -97,9 +95,7 @@ Un calcolatore sono due pezzi: la *memoria* M e il *processore* P, che si parlan
   content((3.2, -3.25), text(8pt, fill: red)[M[PC]])
 }), [Il PC contiene l'indirizzo della prossima istruzione da prendere in memoria])
 
-=== Il ciclo del processore
-
-Il processore ripete per sempre questi quattro passi:
+Una volta avviato, il processore ripete per sempre questi quattro passi:
 
 ```c
 while (true) {
@@ -109,8 +105,6 @@ while (true) {
     scrive i risultati
 }
 ```
-
-=== Tipi di istruzione
 
 Quali istruzioni esistono dipende dal processore (x86, ARM, RISC-V), ma i tipi sono sempre tre:
 
@@ -132,7 +126,7 @@ inizio:  ADD R0, R0, R0   ← PC
 ```,
 [Il PC scende di un'istruzione alla volta; il *salto* lo rimette su `inizio`, quindi il programma ricomincia.])
 
-=== Clock e legge di Moore
+A dare il ritmo ai passi del ciclo è il *clock*:
 
 #grid(columns: (1.2fr, 1fr), gutter: 1.5em, align: horizon,
 figura(canvas(length: 0.8cm, {
@@ -158,7 +152,7 @@ figura(canvas(length: 0.8cm, {
 
 == Astrazione
 
-=== Livelli di astrazione
+Un calcolatore si studia a *livelli di astrazione*: ognuno usa quello sotto senza doverne conoscere i dettagli.
 
 #let az = rgb("#eef4ff")
 #let descr(t) = text(fill: luma(80))[ — #t]
@@ -174,7 +168,7 @@ figura(canvas(length: 0.8cm, {
   ([Fisica #descr[questi ultimi 3 non li facciamo]], luma(230)),
 ))
 
-=== Interfacce
+Tra un livello e l'altro c'è un'*interfaccia*:
 
 #grid(columns: (auto, 1fr), gutter: 1.5em, align: horizon,
 stack(
@@ -202,7 +196,7 @@ Il livello i usa solo l'interfaccia, non sa com'è fatto sotto.])
    #v-verde \ #text(8pt)[Rosetta traduce \ le istruzioni x86 in ARM]],
 ))
 
-=== Gerarchia, modularità, regolarità
+Per costruire sistemi così complessi si usano tre principi:
 
 - *Gerarchia*: il sistema è diviso in livelli (sopra).
 - *Modularità*: ogni livello è fatto di moduli con un compito preciso.
@@ -272,8 +266,6 @@ canvas(length: 0.8cm, {
 
 == Numeri binari
 
-=== Sistemi di numerazione posizionali
-
 I circuiti digitali lavorano in *binario*: ogni segnale vale 0 o 1.
 
 In un sistema posizionale *conta l'ordine delle cifre*: la stessa cifra vale di più quanto più è a sinistra. Ogni posizione ha un peso.
@@ -286,9 +278,7 @@ In un sistema posizionale *conta l'ordine delle cifre*: la stessa cifra vale di 
 
 Esempio: $13_10 != 31_10$ e $10_2 != 01_2$. Stesse cifre, ordine diverso, numero diverso.
 
-==== Da decimale a binario
-
-Divido per 2 finché arrivo a 1, poi leggo i resti *dal basso verso l'alto*.
+Per passare *da decimale a binario* divido per 2 finché arrivo a 1, poi leggo i resti *dal basso verso l'alto*.
 
 #align(center, grid(columns: 2, gutter: 3em,
   table(columns: 3, align: center,
@@ -306,9 +296,7 @@ Divido per 2 finché arrivo a 1, poi leggo i resti *dal basso verso l'alto*.
   ) + align(center)[$7 = 111_2$],
 ))
 
-=== Somma e prodotto in binario
-
-Come in decimale, ma $1 + 1 = 10_2$: scrivo 0 e riporto 1.
+Somma e prodotto in binario si fanno come in decimale, ma $1 + 1 = 10_2$: scrivo 0 e riporto 1.
 
 #align(center, grid(columns: 3, gutter: 3em, align: bottom,
   [#conto(sopra: ("8421",), "1010", "0100", "1110") \ #text(9pt)[10 + 4 = 14]],
@@ -322,9 +310,7 @@ Il prodotto si fa in colonna come in decimale. In binario ogni riga è molto sem
   [#conto(op: "×", "1010", "0100", "0000", "0000·", "1010··", "0000···", "0101000") \ #text(9pt)[10 × 4 = 40 = 32 + 8]],
 ))
 
-=== Numeri negativi: modulo e segno
-
-Il primo bit è il *segno* (0 = +, 1 = −), gli altri sono il *valore assoluto*.
+Per i *numeri negativi* il modo più semplice è *modulo e segno*: il primo bit è il *segno* (0 = +, 1 = −), gli altri sono il *valore assoluto*.
 
 #align(center, table(columns: 5, align: center, inset: 8pt,
   table.cell(fill: rgb("#fde2e2"))[*1*], [1], [1], [0], [0],
@@ -345,9 +331,7 @@ Esempi: $+12 + 12 = +24$, #h(0.5em) $-12 + (-12) = -24$, #h(0.5em) $-12 + 7 = -5
 
 #nota[Servono confronti e sottrazioni: il circuito che somma diventa complicato. Il complemento a 2 risolve questo problema.]
 
-=== Complemento a 2
-
-Per passare da $n$ a $-n$:
+Si usa quindi il *complemento a 2*. Per passare da $n$ a $-n$:
 
 #align(center, stack(dir: ltr, spacing: 0.8em,
   box(stroke: 0.6pt, inset: 6pt)[$n$ in binario], align(horizon)[→],
@@ -360,7 +344,7 @@ Vale anche al contrario: rifacendo "nego + 1" su $-n$ torno a $n$. Così, se un 
 
 Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
 
-==== Esempio: $-12 + 7$ (5 bit)
+#block(sticky: true)[Esempio: $-12 + 7$ su 5 bit.]
 
 #align(center, grid(columns: 3, gutter: 2.5em, align: bottom,
   [#passi(("12", "01100"), ("nego", "10011"), ("+1", "10100")) \ #text(9pt)[−12]],
@@ -368,7 +352,7 @@ Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
   [#passi(("somma", "11011"), ("nego", "00100"), ("+1", "00101")) \ #text(9pt)[inizia per 1, è negativo: \ vale −5 ✓]],
 ))
 
-==== Esempio: $-5 + (-3)$ (6 bit)
+#block(sticky: true)[Esempio: $-5 + (-3)$ su 6 bit.]
 
 #align(center, grid(columns: 4, gutter: 2em, align: bottom,
   [#passi(("5", "000101"), ("nego", "111010"), ("+1", "111011")) \ #text(9pt)[−5]],
