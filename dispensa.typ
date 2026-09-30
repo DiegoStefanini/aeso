@@ -165,7 +165,8 @@
       else { line((i * passo, yi), (xa, yi)) }
     }
     let yin = yo + 0.3 - j * 0.6 / calc.max(m - 1, 1)
-    line((xa + 0.9, yy), (xa + 1.5, yy), (xa + 1.5, yin), (xa + 2.3, yin))
+    let xr = xa + 1.2 + 0.2 * calc.abs(j - (m - 1) / 2)
+    line((xa + 0.9, yy), (xr, yy), (xr, yin), (xa + 2.3, yin))
   }
   porta-or((xa + 2.2, yo), h: 1.2)
   line((xa + 3.5, yo), (xa + 4.3, yo)); content((xa + 4.6, yo), uscita)
@@ -209,7 +210,7 @@
 // if (cond) f(x) else g(x) come circuito
 #let se-allora(cond, f, g) = canvas(length: 0.8cm, {
   import draw: *
-  content((2, 2.75), $x$); line((2, 2.5), (2, 2.2)); line((1.5, 2.2), (2.5, 2.2))
+  content((2, 2.75), $x$); line((2, 2.5), (2, 2.2)); line((-0.95, 2.2), (2.5, 2.2)); fr((-0.95, 2.2), (-0.95, 0))
   for (x, t) in ((1.5, f), (2.5, g)) {
     fr((x, 2.2), (x, 1.65))
     rect((x - 0.45, 1.6), (x + 0.45, 0.9), fill: white); content((x, 1.25), text(9pt, t))
@@ -341,9 +342,7 @@ Un calcolatore si studia a *livelli di astrazione*: ognuno usa quello sotto senz
   ([Fisica #descr[questi ultimi 3 non li facciamo]], luma(230)),
 ))
 
-Il corso parte dal basso (circuiti digitali, logica) e risale fino al sistema operativo. FA e MUX sono due circuiti che vedremo più avanti: il *full adder* somma una cifra, il *multiplexer* sceglie fra due segnali.
-
-Come si parlano due livelli vicini?
+Il corso parte dal basso e risale. FA e MUX sono due circuiti che arrivano più avanti: il *full adder* somma una cifra, il *multiplexer* sceglie fra due segnali.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 1.5em, align: horizon,
 stack(
@@ -439,7 +438,7 @@ In un sistema posizionale *conta l'ordine delle cifre*: la stessa cifra vale di 
   [binario], [$2^3 = 8$], [$2^2 = 4$], [$2^1 = 2$], [$2^0 = 1$],
 ))
 
-Esempio: $13_10 != 31_10$ e $10_2 != 01_2$. Stesse cifre, ordine diverso, numero diverso.
+Esempio: $13_10 != 31_10$ e $10_2 != 01_2$ (il numero piccolo in basso è la base).
 
 Per passare *da binario a decimale* sommo i pesi delle posizioni dove c'è 1: $1100_2 = 8 + 4 = 12$.
 
@@ -468,7 +467,7 @@ Somma e prodotto in binario si fanno come in decimale, ma $1 + 1 = 10_2$: scrivo
   [#conto(sopra: ("111 ",), "0111", "0001", "1000") \ #text(9pt)[7 + 1 = 8 (riporti in grigio)]],
 ))
 
-Il prodotto si fa in colonna come in decimale. In binario ogni riga è molto semplice: la cifra del moltiplicatore è 0 o 1, quindi la riga è tutta zeri oppure il numero stesso. Come in decimale, ogni riga si sposta di un posto a sinistra (il · segna il posto lasciato vuoto).
+Nel prodotto in colonna la cifra del moltiplicatore è 0 o 1, quindi ogni riga è tutta zeri oppure il numero stesso, spostata di un posto a sinistra (il · segna il posto lasciato vuoto).
 
 #align(center, grid(columns: 2, gutter: 4em, align: bottom,
   [#conto(op: "×", "12", "34", " 48", "36·", "408") \ #text(9pt)[in decimale]],
@@ -483,7 +482,7 @@ Per i *numeri negativi* il modo più semplice è *modulo e segno*: il primo bit 
 ))
 #align(center)[$-12$ in modulo e segno]
 
-Per sommare A e B bisogna prima guardare i segni:
+Per sommare A e B bisogna prima guardare i segni ($S$ = segno, $V$ = valore assoluto):
 
 #align(center, table(columns: 2,
   [Caso], [Risultato],
@@ -496,7 +495,7 @@ Esempi: $+12 + 12 = +24$, #h(0.5em) $-12 + (-12) = -24$, #h(0.5em) $-12 + 7 = -5
 
 #nota[Servono confronti e sottrazioni: il circuito che somma diventa complicato. Il complemento a 2 risolve questo problema.]
 
-Si usa quindi il *complemento a 2*: i positivi si scrivono come sempre, e per passare da $n$ a $-n$:
+Si usa quindi il *complemento a 2*: i positivi si scrivono come sempre, e per passare da $n$ a $-n$ si negano tutti i bit (0 ↔ 1) e si somma 1:
 
 #align(center, stack(dir: ltr, spacing: 0.8em,
   box(stroke: 0.6pt, inset: 6pt)[$n$ in binario], align(horizon)[→],
@@ -507,7 +506,7 @@ Si usa quindi il *complemento a 2*: i positivi si scrivono come sempre, e per pa
 
 Vale anche al contrario: rifacendo "nego + 1" su $-n$ torno a $n$. Così, se un risultato comincia con 1 (è negativo), capisco quanto vale.
 
-Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni. Perché funzioni si capisce più sotto, leggendo i pesi dei bit.
+Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
 
 #block(sticky: true)[Esempio: $-12 + 7$ su 5 bit.]
 
@@ -528,7 +527,7 @@ Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni. P
 
 #nota[Nell'esempio −5 + (−3) esce un riporto oltre i 6 bit e il risultato è giusto lo stesso: *il riporto in uscita non è un errore*. L'errore vero è l'overflow, qui sotto.]
 
-Quanti numeri ci stanno in $n$ bit? Ogni bit raddoppia le combinazioni: $2 dot 2 dot 2 dots.c = 2^n$. Con 8 bit sono $2^8 = 256$ combinazioni, e il bit in posizione $i$ pesa $2^i$.
+Quanti numeri ci stanno in $n$ bit? Ogni bit raddoppia le combinazioni: $2 dot 2 dot 2 dots.c = 2^n$. Con 8 bit sono $2^8 = 256$ combinazioni, e il bit in posizione $i$ (contando da destra, da 0) pesa $2^i$.
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
   table(columns: 8, align: center, inset: 5pt,
@@ -553,7 +552,7 @@ Le 256 combinazioni si possono usare in due modi:
 
 In complemento a 2 metà delle combinazioni va ai negativi e metà a zero e positivi: per questo c'è un negativo in più ($-128$) e i positivi si fermano a $+127$.
 
-Ecco perché il complemento a 2 funziona. Un numero in complemento a 2 si legge così: *il bit più a sinistra pesa $-2^(n-1)$*, gli altri pesano $+2^i$ come sempre.
+Un numero in complemento a 2 si legge così: *il bit più a sinistra pesa $-2^(n-1)$*, gli altri pesano $+2^i$ come sempre. Il segno è già dentro i pesi: per questo basta la somma normale.
 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
   table(columns: 8, align: center, inset: 5pt,
@@ -598,7 +597,7 @@ Esempi su 3 bit, dove il complemento a 2 va da $-4$ a $+3$:
 
 Con segni diversi l'overflow non può mai capitare: il risultato sta sempre fra i due operandi.
 
-Il complemento a 2 permette di fare anche la *sottrazione con lo stesso sommatore*: $a - b = a + (-b)$, e $-b$ = nego $b$ e sommo 1. Il $+1$ entra dal riporto in ingresso del bit più a destra, che per la somma normale vale 0. Il circuito è fra i componenti delle reti logiche.
+Il complemento a 2 permette di fare anche la *sottrazione con lo stesso sommatore*: $a - b = a + (-b)$. Il circuito è fra i componenti delle reti logiche.
 
 == Basi, numeri reali e caratteri
 
@@ -635,7 +634,7 @@ Esempio: $-3$ su 16 bit.
   [ogni gruppo 1111 è una F, 1101 è D: \ $-3 = mono("0xFFFD")$],
 ))
 
-Per i *numeri con la virgola* la notazione posizionale continua a destra della virgola con pesi negativi:
+Per i *numeri con la virgola* la notazione posizionale continua a destra della virgola con esponenti negativi:
 
 $ "123,45" = 1 times 10^2 + 2 times 10^1 + 3 times 10^0 + 4 times 10^(-1) + 5 times 10^(-2) $
 
@@ -661,14 +660,14 @@ L'esponente può essere negativo: con 8 bit ha 256 valori, da $-128$ a $+127$. C
 Anche i *caratteri* sono numeri. Il codice *ASCII* assegna un numero a ogni carattere, con 7 o 8 bit per carattere (cioè 128 o 256 caratteri); deve rappresentare:
 - le 26 lettere, maiuscole e minuscole (e quelle accentate);
 - le 10 cifre e la punteggiatura;
-- i caratteri speciali: `CR` (a capo), `LF` (nuova riga), `TAB`, `DEL`, ...
+- i caratteri speciali: `CR` (ritorno a inizio riga), `LF` (riga nuova), `TAB`, `DEL`, ...
 
 #align(center, table(columns: 6, align: center,
   [carattere], [A], [B], [a], [c], [m],
   [codice], [65], [66], [97], [99], [109],
 ))
 
-Le lettere hanno codici in ordine alfabetico, quindi confrontare due stringhe (in C `char *s1, *s2`) vuol dire confrontare i codici carattere per carattere: `"ciao" < "mondo"` perché `c` = 99 < `m` = 109.
+Le lettere hanno codici in ordine alfabetico, quindi confrontare due stringhe (in C `char *s1, *s2`) vuol dire confrontare i codici carattere per carattere: "ciao" viene prima di "mondo" perché `c` = 99 < `m` = 109.
 
 = Reti logiche
 
@@ -706,7 +705,7 @@ Somiglia davvero ad aritmetica: su 0 e 1, AND è il prodotto. OR è la somma, tr
   [elemento assorbente], [$x "AND" 0 equiv 0$ #h(2em) $x "OR" 1 equiv 1$],
 ))
 
-Per costruire una rete si seguono sempre gli stessi cinque passi, il *procedimento standard*:
+Per costruire una rete da zero si seguono cinque passi, il *procedimento standard*:
 
 #align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
   box(stroke: 0.6pt, inset: 7pt)[1. descrizione \ a parole], align(horizon)[→],
@@ -716,7 +715,7 @@ Per costruire una rete si seguono sempre gli stessi cinque passi, il *procedimen
   box(stroke: 0.6pt, inset: 7pt)[5. tempo di \ stabilizzazione],
 )))
 
-La tabella di verità è la funzione descritta caso per caso: per ogni combinazione di ingressi dice quanto vale l'uscita. Il quinto passo, quanto tempo impiega la rete a rispondere, è l'argomento della prossima sezione.
+La tabella di verità è la funzione descritta caso per caso: per ogni combinazione di ingressi dice quanto vale l'uscita.
 
 Esempio: il *MUX*. A parole: _scegli fra due ingressi $x$ e $y$ a seconda di un ingresso di controllo $c$_.
 
@@ -735,7 +734,7 @@ Dalla descrizione si ricava la tabella di verità. Poi, per ogni riga dove $z = 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($x$, $y$, $c$), ($z$, muxf), ([prodotto], b => if muxf(b) == 1 { text(fill: blu, minterm(b)) } else [])),
   align(left)[
-    Le righe con $z = 1$ sono unite da un OR. Funziona perché ogni prodotto vale 1 solo nella sua riga, e l'OR vale 1 appena uno dei prodotti vale 1: la formula vale 1 esattamente nelle righe scelte.
+    Le righe con $z = 1$ sono unite da un OR. Ogni prodotto vale 1 solo nella sua riga, quindi l'OR vale 1 esattamente nelle righe scelte.
     $ z = #sdp(($x$, $y$, $c$), muxf) $
     Per esempio $overline(x) y c$ = NOT($x$) AND $y$ AND $c$: vale 1 solo per $x = 0, y = 1, c = 1$.
   ],
@@ -859,7 +858,7 @@ Con le porte da 8 si fanno anche quelle più piccole: gli ingressi che avanzano 
   }) \ #text(9pt)[AND da 64 con porte da 8: \ $log_8 64 = 2$ livelli]],
 ))
 
-In generale, una porta da $n$ ingressi fatta con porte da $k$ ingressi richiede $ceil(log_k n)$ livelli: la base è il numero di ingressi di una porta, l'argomento il numero di ingressi totali.
+In generale, una porta da $n$ ingressi fatta con porte da $k$ ingressi richiede $ceil(log_k n)$ livelli ($ceil(dot)$ = arrotondato per eccesso): la base è il numero di ingressi di una porta, l'argomento il numero di ingressi totali.
 
 Il tempo di stabilizzazione di una rete si conta sui *livelli* di AND e OR che il segnale attraversa: le porte dello stesso livello lavorano insieme e costano un solo $Delta t$, i livelli uno dopo l'altro si sommano. Il MUX ha un livello di AND e uno di OR: $2 Delta t$. Vale per ogni somma di prodotti, finché termini e variabili non sono più di 8.
 
@@ -905,7 +904,7 @@ $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overlin
   }), [Componendo tre MUX: $4 Delta t$]),
 ))
 
-*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie, il più significativo $c_0$ sceglie la coppia. Si progetta in un attimo, senza tabella, ma il segnale attraversa due MUX di fila: $2 Delta t + 2 Delta t = 4 Delta t$. I due MUX in alto lavorano insieme, quindi contano una volta sola.
+*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie, il più significativo $c_0$ sceglie la coppia. Non serve la tabella, ma il segnale attraversa due MUX di fila: $2 Delta t + 2 Delta t = 4 Delta t$. I due MUX in alto lavorano insieme, quindi contano una volta sola.
 
 #nota[*Regola generale*: la rete progettata da zero ha un tempo di stabilizzazione minore o uguale a quella ottenuta componendo, perché è ottimizzata tutta insieme. Comporre però costa molta meno fatica.]
 
@@ -1063,11 +1062,11 @@ $ z = x y t + x y overline(t) + overline(x) y t = underbrace(x y t + x y overlin
 
 I livelli restano due, quindi il tempo non cambia, ma le porte calano: da 3 AND e 1 OR a 2 AND e 1 OR. Con porte da soli 2 ingressi il guadagno è più grande, perché ogni AND da tre ingressi diventa due porte: da 8 porte a 3. Raccogliendo ancora, $z = y (x + t)$: 2 porte.
 
-Semplificare quindi non sempre fa guadagnare tempo, ma fa sempre risparmiare porte: meno spazio e meno consumo. Allo stesso modo il riporto del FA, usando tre volte il termine $x y r$, diventa:
+Semplificare quindi non sempre fa guadagnare tempo, ma fa risparmiare porte: meno spazio e meno consumo. Allo stesso modo il riporto del FA, usando tre volte il termine $x y r$, diventa:
 
 $ "rip" = y r + x r + x y $
 
-Vedere a occhio cosa raccogliere è difficile. Le *mappe di Karnaugh* lo rendono facile: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*.
+Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*.
 
 #let ka(c, r) = {
   let ((x, y), (a, b)) = (c, r)
@@ -1087,7 +1086,7 @@ Sulla mappa si cercano *gruppi di $2^k$ celle vicine, tutte a 1, a forma di quad
 
 $ z = overline(x) thin overline(a) + a overline(b) + overline(y) thin overline(a) b $
 
-Un 1 isolato resta un termine con tutte le variabili; un gruppo da 8 ne lascia una sola. Coprendo tutti gli 1 con il minor numero di gruppi, i più grandi possibili, si ottiene la formula più semplice. I gruppi si chiamano *implicanti*.
+Un 1 isolato resta un termine con tutte le variabili; su 4 variabili un gruppo da 8 ne lascia una sola. Coprendo tutti gli 1 con il minor numero di gruppi, i più grandi possibili, si ottiene la formula più semplice. I gruppi si chiamano *implicanti*.
 
 #block(sticky: true)[Le due uscite del full adder:]
 
