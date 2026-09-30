@@ -14,6 +14,7 @@
 #let blu = rgb("#3b6fd8")
 #let verde = rgb("#2e9e5b")
 #let grigio = luma(170)
+#let azzurro = rgb("#eef4ff")
 
 // osservazione del prof, trappola
 #let nota(body) = block(
@@ -104,6 +105,121 @@
   line((x, y + h / 2), (x, y - h / 2), (x + h * 0.8, y), close: true)
   circle((x + h * 0.8 + 0.08, y), radius: 0.08)
 }
+#let porta-nand(p, h: 0.9) = {
+  import draw: *
+  porta-and(p, h: h)
+  circle((p.at(0) + h + 0.08, p.at(1)), radius: 0.08)
+}
+// NAND con i due ingressi uniti: fa da NOT
+#let nand-not(p) = {
+  import draw: *
+  let (x, y) = p
+  porta-nand(p, h: 0.6)
+  line((x, y + 0.15), (x - 0.3, y + 0.15), (x - 0.3, y - 0.15), (x, y - 0.15))
+  circle((x - 0.3, y), radius: 0.05, fill: black)
+}
+#let fr(a, b, ..args) = draw.line(a, b, mark: (end: "stealth"), ..args)
+// barretta sul filo con il numero di bit
+#let bus(p, n) = {
+  import draw: *
+  let (x, y) = p
+  line((x - 0.12, y - 0.12), (x + 0.12, y + 0.12))
+  content((x + 0.3, y + 0.22), text(7pt, n))
+}
+// trapezio del MUX (largo in alto) o del DEMUX (largo in basso); p = angolo in alto a sinistra
+#let trap(p, w: 2, h: 0.7, demux: false, etichette: ("0", "1")) = {
+  import draw: *
+  let (x, y) = p
+  let (su, giu) = if demux { (0.3, 0) } else { (0, 0.3) }
+  line((x + su, y), (x + w - su, y), (x + w - giu, y - h), (x + giu, y - h), close: true, fill: azzurro)
+  for (k, e) in etichette.enumerate() {
+    content((x + w * (k + 0.5) / etichette.len(), if demux { y - h + 0.22 } else { y - 0.22 }), text(7pt, e))
+  }
+}
+// prodotto (AND) di una riga: variabile così com'è se 1, negata se 0, assente se none
+#let prodotto(nomi, b) = range(nomi.len()).map(i =>
+  if b.at(i) == 1 { nomi.at(i) } else if b.at(i) == 0 { $overline(#nomi.at(i))$ }).filter(v => v != none).join(h(1.5pt))
+// somma di prodotti di una funzione f(bit) -> 0/1, ricavata da tutte le righe
+#let sdp(nomi, f) = {
+  let n = nomi.len()
+  let righe = range(calc.pow(2, n)).map(k => range(n).map(i => calc.rem(calc.quo(k, calc.pow(2, n - 1 - i)), 2)))
+  $#(righe.filter(b => f(b) == 1).map(b => prodotto(nomi, b)).join($+$))$
+}
+// rete a due livelli (AND poi OR): termini = liste di 1 / 0 (negato) / none (non collegato)
+#let rete-sp(nomi, termini, uscita: $z$, passo: 0.7) = canvas(length: 0.8cm, {
+  import draw: *
+  let (n, m) = (nomi.len(), termini.len())
+  let xa = (n - 1) * passo + 1.6
+  let yo = -0.9 - (m - 1) * 1.3 / 2
+  for (k, nome) in nomi.enumerate() {
+    content((k * passo, 0.5), nome); line((k * passo, 0.2), (k * passo, -0.9 - (m - 1) * 1.3 - 0.6))
+  }
+  for (j, bits) in termini.enumerate() {
+    let yy = -0.9 - j * 1.3
+    porta-and((xa, yy))
+    let usati = range(n).filter(i => bits.at(i) != none)
+    for (q, i) in usati.enumerate() {
+      let yi = yy + 0.3 - q * 0.6 / calc.max(usati.len() - 1, 1)
+      circle((i * passo, yi), radius: 0.06, fill: black)
+      if bits.at(i) == 0 { line((i * passo, yi), (xa - 0.16, yi)); circle((xa - 0.08, yi), radius: 0.08) }
+      else { line((i * passo, yi), (xa, yi)) }
+    }
+    let yin = yo + 0.3 - j * 0.6 / calc.max(m - 1, 1)
+    line((xa + 0.9, yy), (xa + 1.5, yy), (xa + 1.5, yin), (xa + 2.3, yin))
+  }
+  porta-or((xa + 2.2, yo), h: 1.2)
+  line((xa + 3.5, yo), (xa + 4.3, yo)); content((xa + 4.6, yo), uscita)
+})
+// catena di FA, da sinistra (bit più pesante) a destra; none disegna i puntini
+#let catena-fa(indici) = canvas(length: 0.8cm, {
+  import draw: *
+  for (k, i) in indici.enumerate() {
+    let x = k * 3
+    if i == none { content((x + 0.9, 0.4), [⋯]) } else {
+      rect((x, 0), (x + 1.8, 0.8), fill: azzurro); content((x + 0.9, 0.4), [FA])
+      content((x + 0.35, 1.5), $x_#i$); fr((x + 0.35, 1.25), (x + 0.35, 0.85))
+      content((x + 1.45, 1.5), $y_#i$); fr((x + 1.45, 1.25), (x + 1.45, 0.85))
+      fr((x + 0.9, -0.05), (x + 0.9, -0.5)); content((x + 0.9, -0.8), $z_#i$)
+    }
+    fr((x - 0.05, 0.4), (x - if k == 0 { 0.7 } else { 1.15 }, 0.4))
+  }
+  content((-1.1, 0.4), text(9pt)[rip])
+  let xf = (indici.len() - 1) * 3 + 1.8
+  fr((xf + 0.9, 0.4), (xf + 0.05, 0.4)); content((xf + 1.1, 0.4), text(9pt)[0])
+})
+// mappa di Karnaugh: f(bit di colonna, bit di riga) -> 0 / 1 / contenuto; gruppi = (colonna, riga, larghezza, altezza, colore)
+#let ordine-mappa(n) = if n == 1 { ((0,), (1,)) } else { ((0, 0), (0, 1), (1, 1), (1, 0)) }
+#let kmap(col, rig, f, gruppi: ()) = canvas(length: 0.7cm, {
+  import draw: *
+  line((-0.9, 0.9), (0, 0))
+  content((-0.4, 0.8), anchor: "west", text(8pt, col.join())); content((-0.45, 0.12), anchor: "east", text(8pt, rig.join()))
+  for (i, c) in ordine-mappa(col.len()).enumerate() {
+    content((i + 0.5, 0.3), text(8pt, c.map(str).join()))
+    for (j, r) in ordine-mappa(rig.len()).enumerate() {
+      if i == 0 { content((-0.4, -j - 0.5), text(8pt, r.map(str).join())) }
+      rect((i, -j), (i + 1, -j - 1))
+      let v = f(c, r)
+      content((i + 0.5, -j - 0.5), if v == 1 { strong[1] } else if v == 0 { text(fill: grigio)[0] } else { v })
+    }
+  }
+  for (c, r, w, h, colore) in gruppi {
+    rect((c + 0.1, -r - 0.1), (c + w - 0.1, -r - h + 0.1), radius: 0.25, stroke: 1.3pt + colore)
+  }
+})
+// if (cond) f(x) else g(x) come circuito
+#let se-allora(cond, f, g) = canvas(length: 0.8cm, {
+  import draw: *
+  content((2, 2.75), $x$); line((2, 2.5), (2, 2.2)); line((1.5, 2.2), (2.5, 2.2))
+  for (x, t) in ((1.5, f), (2.5, g)) {
+    fr((x, 2.2), (x, 1.65))
+    rect((x - 0.45, 1.6), (x + 0.45, 0.9), fill: white); content((x, 1.25), text(9pt, t))
+    fr((x, 0.9), (x, 0))
+  }
+  trap((1, 0), etichette: ("1", "0"))
+  rect((-1.6, 0), (-0.3, -0.7), fill: rgb("#fff3c4")); content((-0.95, -0.35), text(9pt, cond))
+  fr((-0.3, -0.35), (1.15, -0.35))
+  fr((2, -0.7), (2, -1.3)); content((2, -1.6), $z$)
+})
 
 #align(center)[
   #v(4cm)
@@ -311,10 +427,6 @@ figura(canvas(length: 0.75cm, {
 }), [Ad albero: le somme dello stesso livello sono indipendenti, quindi si possono fare insieme (con 4 sommatori): le stesse 7 somme in 3 passi]),
 )
 
-#grid(columns: (auto, 1fr), gutter: 1.5em, align: horizon,
-mux,
-[*MUX*: il segnale che entra di lato sceglie quale ingresso passa in uscita, x (se c vale 0) o y (se c vale 1).])
-
 == Numeri binari
 
 I circuiti digitali lavorano in *binario*: ogni segnale vale 0 o 1.
@@ -486,24 +598,7 @@ Esempi su 3 bit, dove il complemento a 2 va da $-4$ a $+3$:
 
 Con segni diversi l'overflow non può mai capitare: il risultato sta sempre fra i due operandi.
 
-Il complemento a 2 permette di fare anche la *sottrazione con lo stesso sommatore*: $a - b = a + (-b)$, e $-b$ = nego $b$ e sommo 1. Il $+1$ entra dal riporto in ingresso del bit più a destra, che per la somma normale vale 0.
-
-#let sommatore(neg) = canvas(length: 0.8cm, {
-  import draw: *
-  rect((0, 0), (1.4, 1), fill: rgb("#eef4ff")); content((0.7, 0.5), [*+*])
-  content((0.35, 2.3), [a]); line((0.35, 2), (0.35, 1.05), mark: (end: "stealth"))
-  content((1.05, 2.3), [b]); line((1.05, 2), (1.05, 1.05), mark: (end: "stealth"))
-  if neg {
-    rect((0.75, 1.3), (1.35, 1.7), fill: rgb("#fde2e2")); content((1.05, 1.5), text(7pt)[NOT])
-  }
-  line((2.4, 0.5), (1.45, 0.5), mark: (end: "stealth")); content((2.7, 0.5), if neg { text(fill: red)[*1*] } else [0])
-  line((0.7, -0.05), (0.7, -0.8), mark: (end: "stealth")); content((0.7, -1.1), if neg [$a - b$] else [$a + b$])
-  line((-0.05, 0.5), (-0.6, 0.5), mark: (end: "stealth")); content((-0.9, 0.5), text(8pt)[rip.])
-})
-#align(center, grid(columns: 2, gutter: 4em, align: bottom,
-  figura(sommatore(false), [Somma: riporto in ingresso 0]),
-  figura(sommatore(true), [Sottrazione: NOT su b, riporto in ingresso 1]),
-))
+Il complemento a 2 permette di fare anche la *sottrazione con lo stesso sommatore*: $a - b = a + (-b)$, e $-b$ = nego $b$ e sommo 1. Il $+1$ entra dal riporto in ingresso del bit più a destra, che per la somma normale vale 0. Il circuito è fra i componenti delle reti logiche.
 
 == Basi, numeri reali e caratteri
 
@@ -579,6 +674,8 @@ Le lettere hanno codici in ordine alfabetico, quindi confrontare due stringhe (i
 
 == Porte logiche e tabelle di verità
 
+Una *rete combinatoria* è un circuito che calcola una funzione: l'uscita dipende solo dal valore degli ingressi in quel momento.
+
 I circuiti digitali lavorano su $\{0, 1\}$ con tre operazioni di base, le *porte logiche*. Gli ingressi entrano da sinistra, l'uscita esce a destra.
 
 #let simbolo(disegno) = canvas(length: 0.8cm, {
@@ -609,14 +706,17 @@ Somiglia davvero ad aritmetica: su 0 e 1, AND è il prodotto. OR è la somma, tr
   [elemento assorbente], [$x "AND" 0 equiv 0$ #h(2em) $x "OR" 1 equiv 1$],
 ))
 
-Una funzione logica si può descrivere in tre modi, e da uno si passa all'altro:
+Per costruire una rete si seguono sempre gli stessi cinque passi, il *procedimento standard*:
 
-#align(center, stack(dir: ltr, spacing: 0.8em,
-  box(stroke: 0.6pt, inset: 8pt)[descrizione \ a parole], align(horizon)[→],
-  box(stroke: 0.6pt, inset: 8pt, fill: rgb("#eef4ff"))[tabella \ di verità], align(horizon)[→],
-  box(stroke: 0.6pt, inset: 8pt)[formula: *somma di prodotti* \ #text(8pt)[OR di tanti AND]], align(horizon)[→],
-  box(stroke: 0.6pt, inset: 8pt, fill: rgb("#fff3c4"))[rete di porte \ (circuito)],
-))
+#align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
+  box(stroke: 0.6pt, inset: 7pt)[1. descrizione \ a parole], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: azzurro)[2. tabella \ di verità], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt)[3. *somma di prodotti* \ #text(8pt)[OR di tanti AND]], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: rgb("#fff3c4"))[4. rete \ di porte], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt)[5. tempo di \ stabilizzazione],
+)))
+
+La tabella di verità è la funzione descritta caso per caso: per ogni combinazione di ingressi dice quanto vale l'uscita. Il quinto passo, quanto tempo impiega la rete a rispondere, è l'argomento della prossima sezione.
 
 Esempio: il *MUX*. A parole: _scegli fra due ingressi $x$ e $y$ a seconda di un ingresso di controllo $c$_.
 
@@ -629,14 +729,14 @@ Dalla descrizione si ricava la tabella di verità. Poi, per ogni riga dove $z = 
 
 #let minterm(b) = {
   let v = ($x$, $y$, $c$)
-  range(3).map(i => if b.at(i) == 1 { v.at(i) } else { $overline(#v.at(i))$ }).join()
+  prodotto(v, b)
 }
 #let muxf(b) = if b.at(2) == 0 { b.at(0) } else { b.at(1) }
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($x$, $y$, $c$), ($z$, muxf), ([prodotto], b => if muxf(b) == 1 { text(fill: blu, minterm(b)) } else [])),
   align(left)[
     Le righe con $z = 1$ sono unite da un OR. Funziona perché ogni prodotto vale 1 solo nella sua riga, e l'OR vale 1 appena uno dei prodotti vale 1: la formula vale 1 esattamente nelle righe scelte.
-    $ z = overline(x) y c + x overline(y) overline(c) + x y overline(c) + x y c $
+    $ z = #sdp(($x$, $y$, $c$), muxf) $
     Per esempio $overline(x) y c$ = NOT($x$) AND $y$ AND $c$: vale 1 solo per $x = 0, y = 1, c = 1$.
   ],
 ))
@@ -644,28 +744,372 @@ Dalla descrizione si ricava la tabella di verità. Poi, per ogni riga dove $z = 
 Ogni prodotto diventa una porta AND a tre ingressi (il pallino sull'ingresso è un NOT), e le quattro uscite entrano in una OR:
 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
-figura(canvas(length: 0.8cm, {
-  import draw: *
-  let colonne = (0, 0.7, 1.4) // linee x, y, c
-  for (k, n) in ("x", "y", "c").enumerate() {
-    content((colonne.at(k), 0.5), [$#n$]); line((colonne.at(k), 0.2), (colonne.at(k), -5.4))
-  }
-  let porte = ((0, 1, 1), (1, 0, 0), (1, 1, 0), (1, 1, 1))
-  let or-y = (-2.35, -2.55, -2.75, -2.95)
-  for (j, bits) in porte.enumerate() {
-    let yy = -0.9 - j * 1.3
-    porta-and((3, yy))
-    for i in range(3) {
-      let yi = yy + 0.3 - i * 0.3
-      circle((colonne.at(i), yi), radius: 0.06, fill: black)
-      if bits.at(i) == 0 {
-        line((colonne.at(i), yi), (2.84, yi)); circle((2.92, yi), radius: 0.08)
-      } else { line((colonne.at(i), yi), (3, yi)) }
-    }
-    line((3.9, yy), (4.5, yy), (4.5, or-y.at(j)), (5.3, or-y.at(j)))
-  }
-  porta-or((5.2, -2.65), h: 1.2)
-  line((6.5, -2.65), (7.3, -2.65)); content((7.6, -2.65), [$z$])
-}), [Il MUX come rete di porte]),
+figura(rete-sp(($x$, $y$, $c$), ((0, 1, 1), (1, 0, 0), (1, 1, 0), (1, 1, 1))), [Il MUX come rete di porte]),
 [... che si disegna col simbolo \ #mux],
 ))
+
+Le tre porte si possono ottenere tutte da una sola, la *NAND*: un AND con l'uscita negata (il pallino in fondo).
+
+#let nand(a, b) = 1 - a * b
+#align(center, grid(columns: 2, gutter: 3em, align: horizon,
+  align(center)[#canvas(length: 0.8cm, { import draw: *; line((-0.5, 0.25), (0, 0.25)); line((-0.5, -0.25), (0, -0.25)); porta-nand((0, 0)); line((1.06, 0), (1.5, 0)) }) \ #tvb(($x$, $y$), ([NAND], b => nand(..b)))],
+  align(left)[
+    - *NOT*: $"NAND"(x, x)$, perché $x "AND" x = x$ e poi viene negato.
+    - *AND*: una NAND seguita da un NOT, che toglie la negazione.
+    - *OR*: per la legge di *De Morgan* $x + y = overline(overline(x) dot overline(y))$, cioè nego i due ingressi e li mando in una NAND.
+  ],
+))
+
+#let filo(x) = { import draw: *; line((x, 0.15), (x + 0.5, 0.15)); line((x, -0.15), (x + 0.5, -0.15)) }
+#align(center, grid(columns: 3, gutter: 3em, align: center + bottom,
+  [#canvas(length: 0.8cm, { import draw: *
+    line((-0.8, 0), (-0.3, 0)); nand-not((0, 0)); line((0.76, 0), (1.3, 0)) }) \ #text(9pt)[NOT: 1 NAND]],
+  [#canvas(length: 0.8cm, { import draw: *
+    filo(-0.5); porta-nand((0, 0), h: 0.6); line((0.76, 0), (1.2, 0)); nand-not((1.5, 0)); line((2.26, 0), (2.8, 0)) }) \ #text(9pt)[AND: 2 NAND]],
+  [#canvas(length: 0.8cm, { import draw: *
+    for y in (0.5, -0.5) {
+      line((-0.8, y), (-0.3, y)); nand-not((0, y))
+      line((0.76, y), (1.2, y), (1.2, y * 0.3), (1.6, y * 0.3))
+    }
+    porta-nand((1.6, 0), h: 0.6); line((2.36, 0), (2.9, 0)) }) \ #text(9pt)[OR: 3 NAND]],
+))
+
+Con un solo tipo di porta si risparmia lavoro di progettazione, ma non spazio sul chip: per ogni AND o OR servono più NAND.
+
+== Tempo di stabilizzazione
+
+Una porta non risponde subito. Da quando gli ingressi hanno il loro valore (istante $t_0$) a quando l'uscita è quella giusta ($t_1$) passa del tempo, e nel frattempo l'uscita può valere qualunque cosa. È il *tempo di stabilizzazione* (o ritardo) della rete.
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  let (t0, t1, fine) = (2, 4.5, 8)
+  let segnale(nome, y, da, v) = {
+    content((-0.5, y + 0.2), nome)
+    rect((0, y), (da, y + 0.4), fill: luma(225), stroke: none)
+    content((da / 2, y + 0.2), text(8pt, fill: luma(110))[?])
+    line((da, y + 0.4 * v), (fine, y + 0.4 * v), stroke: 1.2pt + blu)
+    content((fine + 0.3, y + 0.2), [#v])
+  }
+  segnale($x$, 0, t0, 1); segnale($y$, -0.8, t0, 0); segnale($c$, -1.6, t0, 1); segnale($z$, -2.4, t1, 0)
+  for (t, n) in ((t0, $t_0$), (t1, $t_1$)) {
+    line((t, 0.7), (t, -2.6), stroke: (dash: "dashed")); content((t, 1), n)
+  }
+  line((t0, -3), (t1, -3), mark: (start: "stealth", end: "stealth"))
+  content(((t0 + t1) / 2, -3.4), text(9pt)[tempo di stabilizzazione])
+}), [Il MUX con $c = 1$ fa passare $y = 0$, ma $z$ è affidabile solo da $t_1$ in poi])
+
+Il ritardo di una porta dipende da quanti ingressi ha: resta basso fino a una certa soglia, poi esplode. Nel corso si usa questa convenzione:
+
+#align(center, grid(columns: 2, gutter: 3em, align: horizon,
+canvas(length: 0.7cm, {
+  import draw: *
+  line((0, 0), (5, 0), mark: (end: "stealth")); line((0, 0), (0, 3), mark: (end: "stealth"))
+  content((2.5, -1), text(8pt)[numero di ingressi]); content((0, 3.4), text(8pt)[ritardo])
+  line((0, 0.5), (2.8, 0.5), stroke: 1.2pt + blu)
+  bezier((2.8, 0.5), (4.3, 3), (3.8, 0.5), stroke: 1.2pt + blu)
+  line((2.8, 0), (2.8, 0.5), stroke: (dash: "dashed")); content((2.8, -0.35), text(8pt)[8])
+  content((-0.5, 0.5), text(8pt)[$Delta t$])
+}),
+box(stroke: 1pt + red, inset: 10pt, radius: 4pt, align(left)[
+  - AND e OR *fino a 8 ingressi*: ritardo $Delta t$
+  - NOT: ritardo *0*
+]),
+))
+
+Il NOT non costa perché il segnale negato è già pronto dentro la porta che lo produce: basta prenderlo da un altro punto del circuito.
+
+Con le porte da 8 si fanno anche quelle più piccole: gli ingressi che avanzano si collegano al valore che non cambia il risultato, 1 per l'AND e 0 per l'OR. Per più di 8 ingressi si collegano più porte *ad albero*, e ogni livello dell'albero costa $Delta t$.
+
+#align(center, grid(columns: 3, gutter: 2.5em, align: center + bottom,
+  [#canvas(length: 0.6cm, {
+    import draw: *
+    porta-and((0, 0), h: 3.4)
+    for (k, t) in ($x$, $y$, [1], [1], [1], [1], [1], [1]).enumerate() {
+      let y = 1.47 - k * 0.42
+      line((-0.7, y), (0, y)); content((-1, y), text(7pt, fill: if k < 2 { black } else { red }, t))
+    }
+    line((3.4, 0), (4, 0))
+  }) \ #text(9pt)[AND da 2 con una porta da 8: \ sei ingressi fissi a 1]],
+  [#canvas(length: 0.6cm, {
+    import draw: *
+    let liv = ((0, 1.2, 2.4, 3.6), (0.6, 3.0), (1.8,))
+    for (l, ys) in liv.enumerate() {
+      for y in ys {
+        porta-and((l * 2, -y), h: 0.7)
+        if l == 0 { line((-0.5, -y + 0.2), (0, -y + 0.2)); line((-0.5, -y - 0.2), (0, -y - 0.2)) }
+        if l < 2 {
+          let yn = liv.at(l + 1).sorted(key: v => calc.abs(v - y)).first()
+          let yi = -yn + if y < yn { 0.2 } else { -0.2 }
+          line((l * 2 + 0.7, -y), (l * 2 + 1.3, -y), (l * 2 + 1.3, yi), (l * 2 + 2, yi))
+        } else { line((l * 2 + 0.7, -y), (l * 2 + 1.4, -y)) }
+      }
+    }
+  }) \ #text(9pt)[AND da 8 con porte da 2: \ $log_2 8 = 3$ livelli]],
+  [#canvas(length: 0.6cm, {
+    import draw: *
+    for (k, y) in (0, 1.2, 3.6).enumerate() {
+      porta-and((0, -y), h: 0.7)
+      line((-0.9, -y), (0, -y)); bus((-0.5, -y), [8])
+      let yi = -1.8 + 0.5 - k * 0.5
+      line((0.7, -y), (1.3, -y), (1.3, yi), (2, yi))
+    }
+    content((0.35, -2.3), [⋮])
+    porta-and((2, -1.8), h: 1.6)
+    line((3.6, -1.8), (4.3, -1.8))
+  }) \ #text(9pt)[AND da 64 con porte da 8: \ $log_8 64 = 2$ livelli]],
+))
+
+In generale, una porta da $n$ ingressi fatta con porte da $k$ ingressi richiede $ceil(log_k n)$ livelli: la base è il numero di ingressi di una porta, l'argomento il numero di ingressi totali.
+
+Il tempo di stabilizzazione di una rete si conta sui *livelli* di AND e OR che il segnale attraversa: le porte dello stesso livello lavorano insieme e costano un solo $Delta t$, i livelli uno dopo l'altro si sommano. Il MUX ha un livello di AND e uno di OR: $2 Delta t$. Vale per ogni somma di prodotti, finché termini e variabili non sono più di 8.
+
+Una rete si può costruire in due modi: da zero con i cinque passi, oppure *componendo* reti già fatte. Esempio: un MUX che sceglie fra *quattro* ingressi con due bit di controllo $c_0 c_1$ (qui $c_0$ è quello più a sinistra). La barretta con un numero indica quanti bit passano su un filo.
+
+#let tab-mux4 = {
+  let righe = range(4).map(c => (0, 1).map(v => (
+    [#calc.quo(c, 2)], [#calc.rem(c, 2)], ..range(4).map(i => if i == c [#v] else [−]),
+    if v == 1 { text(fill: blu, weight: "bold")[1] } else [0],
+  ))).flatten()
+  table(columns: 7, align: center, inset: 5pt,
+    stroke: (x, y) => if x == 5 { (right: 1pt) } + if y == 0 { (bottom: 1pt) },
+    $c_0$, $c_1$, $x_0$, $x_1$, $x_2$, $x_3$, $z$, ..righe)
+}
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 1.5em, align: horizon,
+  canvas(length: 0.8cm, {
+    import draw: *
+    trap((0, 0), w: 3.2, etichette: ("00", "01", "10", "11"))
+    for k in range(4) { let x = 3.2 * (k + 0.5) / 4; content((x, 1), $x_#k$); fr((x, 0.75), (x, 0)) }
+    fr((-1.1, -0.35), (0.15, -0.35)); content((-1.7, -0.35), $c_0 c_1$); bus((-0.75, -0.35), [2])
+    fr((1.6, -0.7), (1.6, -1.4)); content((1.6, -1.7), $z$)
+  }),
+  tab-mux4,
+  [*Da zero.* Gli ingressi sono 6: la tabella avrebbe $2^6 = 64$ righe. Si accorcia scrivendo − dove il valore di un ingresso non conta: con controllo 00 conta solo $x_0$. Ogni riga con tre − ne riassume $2^3 = 8$.],
+))
+
+$ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overline(c_1) x_2 + c_0 c_1 x_3 $
+
+#let nc = none
+#align(center, grid(columns: 2, gutter: 2em, align: horizon,
+  figura(rete-sp(($c_0$, $c_1$, $x_0$, $x_1$, $x_2$, $x_3$), ((0, 0, 1, nc, nc, nc), (0, 1, nc, 1, nc, nc), (1, 0, nc, nc, 1, nc), (1, 1, nc, nc, nc, 1))),
+    [Da zero: quattro AND e una OR, $2 Delta t$]),
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    trap((0, 0)); trap((3.6, 0)); trap((1.8, -2))
+    for (k, x) in (0.5, 1.5, 4.1, 5.1).enumerate() { content((x, 1), $x_#k$); fr((x, 0.75), (x, 0)) }
+    line((1, -0.7), (1, -1.4), (2.3, -1.4)); fr((2.3, -1.4), (2.3, -2))
+    line((4.6, -0.7), (4.6, -1.4), (3.3, -1.4)); fr((3.3, -1.4), (3.3, -2))
+    fr((2.8, -2.7), (2.8, -3.4)); content((2.8, -3.7), $z$)
+    for x in (0, 3.6) { content((x - 0.75, -0.35), text(9pt, $c_1$)); fr((x - 0.5, -0.35), (x + 0.15, -0.35)) }
+    content((0.8, -2.35), text(9pt, $c_0$)); fr((1.05, -2.35), (1.95, -2.35))
+    content((6.6, -0.35), text(9pt, fill: red)[$2 Delta t$]); content((6.6, -2.35), text(9pt, fill: red)[$+ 2 Delta t$])
+  }), [Componendo tre MUX: $4 Delta t$]),
+))
+
+*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie, il più significativo $c_0$ sceglie la coppia. Si progetta in un attimo, senza tabella, ma il segnale attraversa due MUX di fila: $2 Delta t + 2 Delta t = 4 Delta t$. I due MUX in alto lavorano insieme, quindi contano una volta sola.
+
+#nota[*Regola generale*: la rete progettata da zero ha un tempo di stabilizzazione minore o uguale a quella ottenuta componendo, perché è ottimizzata tutta insieme. Comporre però costa molta meno fatica.]
+
+== Componenti
+
+Alcune reti si usano così spesso che diventano mattoni pronti, come il MUX.
+
+Il *full adder* (FA) fa una colonna della somma in binario: prende i due bit $x$ e $y$ e il riporto $r$ che arriva dalla colonna a destra, e calcola il bit del risultato e il riporto per la colonna a sinistra.
+
+#let ris(b) = calc.rem(b.sum(), 2)
+#let rip(b) = if b.sum() >= 2 { 1 } else { 0 }
+#let xyr = ($x$, $y$, $r$)
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
+  canvas(length: 0.8cm, {
+    import draw: *
+    rect((0, 0), (1.4, 0.9), fill: azzurro); content((0.7, 0.45), [FA])
+    content((0.35, 1.7), $x$); fr((0.35, 1.45), (0.35, 0.95))
+    content((1.05, 1.7), $y$); fr((1.05, 1.45), (1.05, 0.95))
+    fr((2.2, 0.45), (1.45, 0.45)); content((2.45, 0.45), $r$)
+    fr((-0.05, 0.45), (-0.7, 0.45)); content((-1.1, 0.45), text(9pt)[rip])
+    fr((0.7, -0.05), (0.7, -0.6)); content((0.7, -0.9), text(9pt)[ris])
+  }),
+  tvb(xyr, ([ris], ris), ([rip], rip)),
+  [
+    #conto(sopra: ("0100",), "0011", "0010", "0101") \
+    #text(9pt)[3 + 2: ogni colonna somma due bit e il riporto (in grigio)]
+  ],
+))
+
+$ "ris" &= #sdp(xyr, ris) \ "rip" &= #sdp(xyr, rip) $
+
+Ogni formula ha quattro termini di tre variabili, tutto sotto 8: un livello di AND e uno di OR, quindi il FA si stabilizza in $2 Delta t$.
+
+Per sommare numeri di $n$ bit si mettono $n$ FA *in cascata*: il riporto di ognuno entra nel successivo. Da qui in poi i bit si numerano col loro peso: $x_0$ è il meno significativo, $x_(n-1)$ il più significativo.
+
+#figura(catena-fa(($n-1$, none, $1$, $0$)), [Sommatore a $n$ bit: ogni FA aspetta il riporto di quello alla sua destra])
+
+Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*: $n dot 2 Delta t = 2 n Delta t$. Con 2 bit sono $4 Delta t$. Se l'ultimo riporto vale 1, la somma di due numeri senza segno non sta in $n$ bit.
+
+Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+figura(canvas(length: 0.8cm, {
+  import draw: *
+  let r = 1.5pt + red
+  rect((0, 0), (3, -1), fill: azzurro); content((1.5, -0.5), text(9pt)[sommatore $n$ bit])
+  content((0.7, 3.5), $x$); fr((0.7, 3.2), (0.7, 0)); bus((0.7, 2), $n$)
+  content((1.85, 3.5), $y$); line((1.85, 3.2), (1.85, 2.8), stroke: r); fr((1.85, 2.8), (1.85, 1.6))
+  line((1.85, 2.8), (2.55, 2.8), (2.55, 2.4), stroke: r); circle((1.85, 2.8), radius: 0.05, fill: black)
+  circle((2.55, 2.3), radius: 0.1, stroke: r); fr((2.55, 2.2), (2.55, 1.6), stroke: r)
+  content((3.15, 2.35), text(7pt)[NOT])
+  trap((1.5, 1.6), w: 1.4, h: 0.6)
+  fr((2.2, 1), (2.2, 0), stroke: r)
+  content((5.6, -0.5), [op]); fr((5.2, -0.5), (3, -0.5))
+  line((4.2, -0.5), (4.2, 1.3)); circle((4.2, -0.5), radius: 0.05, fill: black); fr((4.2, 1.3), (2.75, 1.3))
+  fr((1.5, -1), (1.5, -1.8), stroke: r); content((1.5, -2.1), $z$); bus((1.5, -1.4), $n$)
+  fr((0, -0.5), (-0.8, -0.5)); content((-1.2, -0.5), text(9pt)[rip])
+}), [op = 0 somma, op = 1 sottrazione. \ In rosso il cammino critico]),
+[
+  Il tempo di stabilizzazione si legge sul *cammino critico* (_critical path_), il percorso più lento dagli ingressi alle uscite:
+
+  #align(center, table(columns: 2, align: (left, right), inset: 5pt,
+    [pezzo], [ritardo],
+    [NOT], [0],
+    [MUX a $n$ bit], [$2 Delta t$],
+    [sommatore a $n$ bit], [$2 n Delta t$],
+    [*totale*], [$bold(2 (n + 1) Delta t)$],
+  ))
+
+  Il MUX a $n$ bit è fatto di $n$ MUX a un bit con lo stesso controllo: lavorano tutti insieme, quindi costa $2 Delta t$ come uno solo.
+],
+))
+
+E progettando il sommatore da zero? La tabella non si scrive, ma il tempo si può stimare. Per due numeri di $n$ bit:
+
+- gli ingressi sono $2 n$, quindi le righe sono $2^(2 n)$;
+- una colonna d'uscita ha al massimo $2^(2 n) - 1$ uni (con tutti 1 sarebbe la costante 1), quindi l'OR ha circa $2^(2 n)$ ingressi: servono $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$;
+- ogni AND ha $2 n$ ingressi: $ceil(log_8 2 n)$ livelli.
+
+Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
+
+#nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
+
+Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere.
+
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
+  canvas(length: 0.8cm, {
+    import draw: *
+    trap((0, 0), demux: true)
+    content((1, 1), $x$); fr((1, 0.75), (1, 0))
+    content((-1.1, -0.35), $c$); fr((-0.85, -0.35), (0.15, -0.35))
+    for (x, t) in ((0.5, $z_1$), (1.5, $z_0$)) { fr((x, -0.7), (x, -1.3)); content((x, -1.6), t) }
+  }),
+  tvb(($c$, $x$), ($z_1$, b => (1 - b.at(0)) * b.at(1)), ($z_0$, b => b.at(0) * b.at(1))),
+  [$ z_1 = overline(c) x #h(2em) z_0 = c x $
+   Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
+))
+
+Il *comparatore* dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
+
+#block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
+  tvb(($x$, $y$), ($z$, b => if b.at(0) == b.at(1) { 1 } else { 0 })),
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    content((0.5, -0.95), [⋮])
+    for (k, (i, y)) in (($n-1$, 0), ($1$, -2), ($0$, -3)).enumerate() {
+      rect((0, y + 0.35), (1, y - 0.35), fill: azzurro); content((0.5, y), [=])
+      fr((-0.7, y + 0.15), (0, y + 0.15)); fr((-0.7, y - 0.15), (0, y - 0.15))
+      content((-0.85, y), anchor: "east", text(9pt)[$x_#i, y_#i$])
+      let yi = -1.5 + 0.6 - k * 0.6
+      line((1, y), (1.7, y), (1.7, yi), (2.4, yi))
+    }
+    porta-and((2.4, -1.5), h: 1.8)
+    fr((4.2, -1.5), (5, -1.5)); content((5.3, -1.5), $z$)
+    content((0.5, -3.9), text(8pt, fill: red)[$2 Delta t$]); content((3.3, -3.9), text(8pt, fill: red)[$+ ceil(log_8 n) Delta t$])
+  }), [Comparatore a $n$ bit: $(2 + ceil(log_8 n)) Delta t$]),
+)))
+
+Il *codificatore* ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ uscite che dicono in che posizione sta quell'1 (di solito $2^k$ ingressi e $k$ uscite). Le altre combinazioni di ingressi non sono ammesse, quindi non compaiono nella tabella.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  table(columns: 6, align: center, inset: 5pt,
+    stroke: (x, y) => if x == 3 { (right: 1pt) } + if y == 0 { (bottom: 1pt) },
+    $x_3$, $x_2$, $x_1$, $x_0$, $z_1$, $z_0$,
+    ..range(4).map(i => (..range(4).rev().map(j => if j == i [1] else [0]), [#calc.quo(i, 2)], [#calc.rem(i, 2)])).flatten()),
+  [$ z_1 &= overline(x_3) x_2 overline(x_1) thin overline(x_0) + x_3 overline(x_2) thin overline(x_1) thin overline(x_0) \
+     z_0 &= overline(x_3) thin overline(x_2) x_1 overline(x_0) + x_3 overline(x_2) thin overline(x_1) thin overline(x_0) $
+   L'ultimo termine è uguale nelle due formule: si calcola una volta sola, 3 AND invece di 4. Il tempo resta $2 Delta t$, ma una porta in meno vuol dire meno spazio e meno consumo.],
+))
+
+#nota[All'esame $2 Delta t$ è la risposta giusta solo se i livelli sono due. Conta sempre i livelli: il demultiplexer ne ha uno ($1 Delta t$), due FA in cascata ne hanno quattro ($4 Delta t$).]
+
+Costruire una rete componendo mattoni pronti, come nel circuito che somma e sottrae, si chiama *approccio strutturale*. Si parte da uno pseudocodice fatto di funzioni e scelte, e ogni pezzo diventa un componente: ogni funzione è una rete, la condizione è una rete con un bit d'uscita, e l'`if` è un MUX comandato da quel bit.
+
+#align(center, grid(columns: 2, gutter: 4em, align: center + bottom,
+  [#se-allora([cond], [F], [G]) \ `if (cond) f(x) else g(x)`],
+  [#se-allora([pari], [`x++`], [`x--`]) \ `if (pari(x)) x++ else x--`],
+))
+
+Nell'esempio di destra, con $x$ di $n$ bit, i tre blocchi si fanno con quello che c'è già:
+
+- `x++`: un sommatore con ingressi $x$ e la costante 1, riporto iniziale 0. Una costante è un filo fisso a 0 o a 1;
+- `x--`: un sommatore con $x$ e la costante 1 negata, riporto iniziale 1: è $x - 1$ fatto come sottrazione;
+- `pari(x)`: un numero è pari quando il suo ultimo bit $x_0$ vale 0, quindi basta un NOT su $x_0$, senza calcoli.
+
+== Semplificare le formule
+
+Fra la somma di prodotti e la rete si può *semplificare* la formula con le regole dell'algebra. Si raccoglie, poi si usano $t + overline(t) = 1$ e $x dot 1 = x$:
+
+$ z = x y t + x y overline(t) = x y (t + overline(t)) = x y $
+
+Qui l'OR sparisce: da $2 Delta t$ a $1 Delta t$. Un termine si può anche usare due volte, perché $x + x = x$:
+
+$ z = x y t + x y overline(t) + overline(x) y t = underbrace(x y t + x y overline(t), x y) + underbrace(x y t + overline(x) y t, y t) = x y + y t $
+
+I livelli restano due, quindi il tempo non cambia, ma le porte calano: da 3 AND e 1 OR a 2 AND e 1 OR. Con porte da soli 2 ingressi il guadagno è più grande, perché ogni AND da tre ingressi diventa due porte: da 8 porte a 3. Raccogliendo ancora, $z = y (x + t)$: 2 porte.
+
+Semplificare quindi non sempre fa guadagnare tempo, ma fa sempre risparmiare porte: meno spazio e meno consumo. Allo stesso modo il riporto del FA, usando tre volte il termine $x y r$, diventa:
+
+$ "rip" = y r + x r + x y $
+
+Vedere a occhio cosa raccogliere è difficile. Le *mappe di Karnaugh* lo rendono facile: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*.
+
+#let ka(c, r) = {
+  let ((x, y), (a, b)) = (c, r)
+  if (x == 0 and a == 0) or (a == 1 and b == 0) or (y == 0 and a == 0 and b == 1) { 1 } else { 0 }
+}
+#block(breakable: false, align(center, grid(columns: 3, gutter: 2.5em, align: center + bottom,
+  [#kmap(($x$,), ($y$,), (c, r) => if c == r { 1 } else { 0 }) \ #text(9pt)[2 variabili: \ il comparatore a un bit]],
+  [#kmap(($x$, $y$), ($a$, $b$), ka) \ #text(9pt)[4 variabili]],
+  [#kmap(($x$, $y$), ($a$, $b$), ka, gruppi: ((0, 0, 2, 2, blu), (0, 3, 4, 1, verde), (-0.35, 1.06, 1.35, 0.88, red), (3, 1.06, 1.35, 0.88, red))) \ #text(9pt)[gli stessi 1 raccolti in tre gruppi]],
+)))
+
+Sulla mappa si cercano *gruppi di $2^k$ celle vicine, tutte a 1, a forma di quadrato o rettangolo*. Ogni gruppo diventa un solo termine: ci restano le variabili che nel gruppo non cambiano, le altre $k$ spariscono.
+
+- Gruppo #text(fill: blu)[blu], 4 celle: $y$ e $b$ cambiano, $x$ e $a$ valgono sempre 0. Termine $overline(x) thin overline(a)$.
+- Gruppo #text(fill: verde)[verde], 4 celle: tutta la riga $a b = 10$, $x$ e $y$ cambiano. Termine $a overline(b)$.
+- Gruppo #text(fill: red)[rosso], 2 celle: la mappa *si richiude sui bordi*, la prima colonna è vicina all'ultima (e la prima riga all'ultima). Cambia solo $x$. Termine $overline(y) thin overline(a) b$.
+
+$ z = overline(x) thin overline(a) + a overline(b) + overline(y) thin overline(a) b $
+
+Un 1 isolato resta un termine con tutte le variabili; un gruppo da 8 ne lascia una sola. Coprendo tutti gli 1 con il minor numero di gruppi, i più grandi possibili, si ottiene la formula più semplice. I gruppi si chiamano *implicanti*.
+
+#block(sticky: true)[Le due uscite del full adder:]
+
+#let rxy(c, r) = c + r
+#block(breakable: false, align(center, grid(columns: 2, gutter: 4em, align: center + bottom,
+  [#kmap(($x$, $y$), ($r$,), (c, r) => ris(rxy(c, r))) \ #text(9pt)[ris: gli 1 sono tutti isolati, \ restano i quattro termini da tre variabili]],
+  [#kmap(($x$, $y$), ($r$,), (c, r) => rip(rxy(c, r)), gruppi: ((2, 0, 1, 2, blu), (1.06, 1.06, 1.88, 0.88, verde), (2.06, 1.12, 1.88, 0.76, red))) \ #text(9pt)[rip: tre gruppi da 2, \ $"rip" = #text(fill: blu)[$x y$] + #text(fill: verde)[$y r$] + #text(fill: red)[$x r$]$]],
+)))
+
+Nel codificatore molte combinazioni di ingressi non sono ammesse: sulla mappa si segnano con −. Non capiteranno mai, quindi si possono contare come 1 quando fa comodo per ingrandire un gruppo.
+
+#let cod(k) = (c, r) => {
+  let bit = r + c // x3 x2 x1 x0
+  if bit.sum() != 1 [−] else { let pos = 3 - bit.position(v => v == 1); calc.rem(calc.quo(pos, calc.pow(2, k)), 2) }
+}
+#let x32 = ($x_3$, $x_2$)
+#let x10 = ($x_1$, $x_0$)
+#block(breakable: false, align(center, grid(columns: 2, gutter: 4em, align: center + bottom,
+  [#kmap(x10, x32, cod(1), gruppi: ((0, 2, 4, 2, blu), (0.06, 1.06, 3.88, 1.88, verde))) \ #text(9pt)[$z_1 = #text(fill: blu)[$x_3$] + #text(fill: verde)[$x_2$]$]],
+  [#kmap(x10, x32, cod(0), gruppi: ((0, 2, 4, 2, blu), (2.06, 0.06, 1.88, 3.88, red))) \ #text(9pt)[$z_0 = #text(fill: blu)[$x_3$] + #text(fill: red)[$x_1$]$]],
+)))
+
+Due gruppi da 8 per ogni uscita: spariscono tre variabili su quattro, e ogni uscita diventa un solo OR.
+
+Con 5 variabili servirebbero due mappe 4 × 4 una sopra l'altra, una per ogni valore della quinta variabile. Per questo oltre le 4 variabili le mappe non si usano.
