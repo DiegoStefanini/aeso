@@ -1011,13 +1011,15 @@ Ogni formula è un OR di quattro prodotti, e ogni prodotto è un AND di tre vari
 
 Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*: $n dot 2 Delta t = 2 n Delta t$. Con 2 bit sono $4 Delta t$. Se l'ultimo riporto vale 1, la somma di due numeri senza segno non sta in $n$ bit.
 
-#video("09", "04:50", "15:48")Il sommatore a $n$ bit è fatto *componendo* $n$ FA, e costa $2 n Delta t$. Come per il MUX a quattro, ci si può chiedere quanto costerebbe progettarlo *da zero* coi cinque passi: una sola tabella di verità con tutti i bit di $x$ e di $y$ come ingressi, e da lì la somma di prodotti. La tabella è troppo grande per scriverla, ma il tempo si stima contando i livelli. Per due numeri di $n$ bit:
+#video("08", "19:01", "24:10")Il sommatore a $n$ bit è fatto *componendo* $n$ FA, e costa $2 n Delta t$. Come per il MUX a quattro, ci si può chiedere quanto costerebbe progettarlo *da zero* coi cinque passi: una sola tabella di verità con tutti i bit di $x$ e di $y$ come ingressi, e da lì la somma di prodotti. Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32. Ogni 1 di una colonna d'uscita è un prodotto che entra nell'OR: gli 1 sono al massimo 31 (con tutti 1 l'uscita varrebbe sempre 1 e non servirebbe una rete), quindi l'OR ha fino a 31 ingressi, cioè 2 livelli di porte da 8. Ogni prodotto contiene tutte e 5 le variabili, quindi gli AND hanno 5 ingressi: 1 livello. In tutto $3 Delta t$, contro i $4 Delta t$ dei due FA in cascata.
+
+#video("09", "04:50", "15:48")Con $n$ bit la tabella non si scrive più, ma il tempo si stima allo stesso modo:
 
 - gli ingressi sono $2 n$, quindi le righe sono $2^(2 n)$;
-- ogni prodotto contiene tutte le $2 n$ variabili, quindi ogni AND ha $2 n$ ingressi: $ceil(log_8 2 n)$ livelli;
-- ogni 1 di una colonna d'uscita è un prodotto che entra nell'OR. Gli 1 sono al massimo $2^(2 n) - 1$ (con tutti 1 l'uscita varrebbe sempre 1 e non servirebbe una rete), quindi l'OR ha circa $2^(2 n)$ ingressi: $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$.
+- ogni AND ha tutte le $2 n$ variabili: $ceil(log_8 2 n)$ livelli;
+- l'OR ha circa $2^(2 n)$ ingressi: $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$.
 
-#video("08", "19:01", "24:10")Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
+Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
