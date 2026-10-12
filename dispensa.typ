@@ -6,10 +6,11 @@
 #set par(justify: true)
 #set heading(numbering: "1.1")
 #show heading.where(level: 1): it => { pagebreak(weak: true); it }
-#show raw.where(block: true): block.with(fill: luma(245), inset: 8pt, radius: 4pt, width: 100%)
+#show raw.where(block: true): block.with(fill: luma(245), inset: 8pt, radius: 4pt, width: 100%, breakable: false)
 #show raw.where(block: false): box.with(fill: luma(240), inset: (x: 3pt), outset: (y: 3pt), radius: 2pt)
 #set table(stroke: 0.5pt + luma(180), inset: 6pt)
 #show table.cell.where(y: 0): strong
+#show table: it => block(breakable: false, it)
 
 #let blu = rgb("#3b6fd8")
 #let verde = rgb("#2e9e5b")
@@ -64,7 +65,7 @@
   content((0.8, 1), [x]); line((0.8, 0.75), (0.8, 0.05), mark: (end: "stealth"))
   content((2.2, 1), [y]); line((2.2, 0.75), (2.2, 0.05), mark: (end: "stealth"))
   line((-0.8, -0.5), (0.25, -0.5), mark: (end: "stealth")); content((-1.05, -0.5), [c])
-  line((1.5, -1.05), (1.5, -1.7), mark: (end: "stealth"))
+  line((1.5, -1.05), (1.5, -1.7), mark: (end: "stealth")); content((1.5, -2), [z])
 })
 // bit di v in complemento a 2 su n bit, a gruppi di 4
 #let c2(v, n) = {
@@ -221,6 +222,43 @@
   fr((-0.3, -0.35), (1.15, -0.35))
   fr((2, -0.7), (2, -1.3)); content((2, -1.6), $z$)
 })
+#let porta-nor(p, h: 0.9) = {
+  import draw: *
+  porta-or(p, h: h)
+  circle((p.at(0) + h * 1.1 + 0.08, p.at(1)), radius: 0.08)
+}
+// simulazione passo per passo: passo(i, valore precedente) -> nuovo valore (none = non ancora definito)
+#let sim(n, passo) = range(n).fold((), (q, i) => q + (passo(i, if i > 0 { q.last() } else { none }),))
+// forme d'onda: segnali = ((nome, valori), ...), un valore per intervallo; righe = intervalli da segnare (fronti del clock)
+#let onde(segnali, w: 0.45, righe: ()) = canvas(length: 0.8cm, {
+  import draw: *
+  let h = 0.45
+  let fondo = -(segnali.len() - 1) * 0.8 - 0.1
+  for x in righe { line((x * w, 0.6), (x * w, fondo), stroke: (paint: grigio, dash: "dashed")) }
+  for (k, (nome, v)) in segnali.enumerate() {
+    let y = -k * 0.8
+    content((-0.25, y + h / 2), anchor: "east", text(9pt, nome))
+    for (i, b) in v.enumerate() {
+      let (x0, x1) = (i * w, (i + 1) * w)
+      if b == none { rect((x0, y), (x1, y + h), fill: luma(225), stroke: none) } else {
+        line((x0, y + b * h), (x1, y + b * h), stroke: 1.2pt + blu)
+        let p = if i > 0 { v.at(i - 1) } else { none }
+        if p != none and p != b { line((x0, y), (x0, y + h), stroke: 1.2pt + blu) }
+      }
+    }
+  }
+})
+// clock: 2 intervalli basso e 2 alto; fronti di salita = intervalli 2, 6, 10, ...
+#let clock(n) = range(n).map(i => calc.rem(calc.quo(i, 2), 2))
+#let fronti(n) = range(2, n, step: 4)
+
+// sessione di terminale: ```sh ... ``` in riquadro scuro
+#show raw.where(lang: "sh"): it => block(fill: rgb("#1f2330"), inset: 9pt, radius: 4pt, width: 100%, {
+  set par(justify: false)
+  show regex("#.*"): set text(fill: rgb("#8a93a6"))
+  show regex("(?m)^\$"): set text(fill: rgb("#7ee787"))
+  text(font: "DejaVu Sans Mono", size: 8.5pt, fill: rgb("#e6e6e6"), it.text)
+})
 
 #align(center)[
   #v(4cm)
@@ -313,7 +351,7 @@ figura(canvas(length: 0.8cm, {
 [
   - 1 GHz = $10^9$ cicli al secondo, quindi un ciclo dura $10^(-9)$ s = 1 ns.
   - Il processore è fatto di *transistor*, minuscoli interruttori. Nel Motorola 68000 (fine anni '70) misuravano 20-40 µm, oggi 2 nm _(1000 nm = 1 µm)_.
-  - Transistor più piccoli → nello spazio di un processore ne stanno più di uno. Ogni processore sul chip si chiama *core*, il chip è *multicore*:
+  - Transistor più piccoli → nello spazio di un processore ne stanno più di uno. Ogni processore sul chip si chiama *core*, il chip è *multicore* (sotto: un chip con un solo processore e uno con quattro core):
   #align(center, stack(dir: ltr, spacing: 1em,
     box(stroke: 0.8pt, inset: 12pt)[P],
     align(horizon)[→],
@@ -397,7 +435,7 @@ figura(canvas(length: 1cm, {
   content((5.1, 0.65), text(8pt, fill: red)[1]); line((4.4, 0.4), (3.45, 0.4), mark: (end: "stealth"))
   content((2.9, 0.65), text(8pt, fill: red)[1]); line((2.2, 0.4), (1.25, 0.4), mark: (end: "stealth"))
   line((-0.05, 0.4), (-0.6, 0.4), mark: (end: "stealth")); content((-0.85, 0.4), text(9pt)[0])
-}), [Regolarità: 123 + 789 = 912 con tre FA uguali in cascata. \ Ogni FA somma una cifra e passa il riporto a sinistra]),
+}), [Regolarità: 123 + 789 = 912 con tre FA uguali in cascata. \ Ogni FA somma una cifra e passa il riporto (in rosso) a sinistra]),
 )
 
 Stesso modulo `+`, due modi di sommare 8 numeri:
@@ -530,16 +568,16 @@ Il vantaggio: *la somma si fa come una somma normale*, senza guardare i segni.
 Quanti numeri ci stanno in $n$ bit? Ogni bit raddoppia le combinazioni: $2 dot 2 dot 2 dots.c = 2^n$. Con 8 bit sono $2^8 = 256$ combinazioni, e il bit in posizione $i$ (contando da destra, da 0) pesa $2^i$.
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
-  table(columns: 8, align: center, inset: 5pt,
+  figura(table(columns: 8, align: center, inset: 5pt,
     ..range(8).rev().map(i => text(8pt)[$2^#i$]),
     ..range(8).map(_ => [ ]),
-  ),
-  table(columns: 2, align: (right, right), inset: 4pt,
+  ), [8 bit: sopra ogni casella il suo peso]),
+  figura(table(columns: 2, align: (right, right), inset: 4pt,
     [binario], [valore],
     ..(0, 1, 2, 3, 4).map(v => (mono(c2(v, 8)), [#v])).flatten(),
     [⋮], [⋮],
     mono(c2(255, 8)), [255],
-  ),
+  ), [Le 256 combinazioni, dalla più piccola alla più grande]),
 )))
 
 Le 256 combinazioni si possono usare in due modi:
@@ -744,7 +782,8 @@ Ogni prodotto diventa una porta AND a tre ingressi (il pallino sull'ingresso è 
 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
 figura(rete-sp(($x$, $y$, $c$), ((0, 1, 1), (1, 0, 0), (1, 1, 0), (1, 1, 1))), [Il MUX come rete di porte]),
-[... che si disegna col simbolo \ #mux],
+align(left)[Nei disegni il MUX si abbrevia con un trapezio: in alto i due ingressi, ognuno col valore di $c$ che lo sceglie; a sinistra il controllo; in basso l'uscita.
+  #align(center, mux)],
 ))
 
 Le tre porte si possono ottenere tutte da una sola, la *NAND*: un AND con l'uscita negata (il pallino in fondo).
@@ -795,9 +834,9 @@ Una porta non risponde subito. Da quando gli ingressi hanno il loro valore (ista
   }
   line((t0, -3), (t1, -3), mark: (start: "stealth", end: "stealth"))
   content(((t0 + t1) / 2, -3.4), text(9pt)[tempo di stabilizzazione])
-}), [Il MUX con $c = 1$ fa passare $y = 0$, ma $z$ è affidabile solo da $t_1$ in poi])
+}), [Il MUX con $c = 1$ fa passare $y = 0$. In grigio i tratti dove il valore non è ancora certo: \ gli ingressi sono pronti da $t_0$, ma $z$ è affidabile solo da $t_1$ in poi])
 
-Il ritardo di una porta dipende da quanti ingressi ha: resta basso fino a una certa soglia, poi esplode. Nel corso si usa questa convenzione:
+Il ritardo di una porta dipende da quanti ingressi ha: resta quasi uguale fino a una certa soglia, poi cresce in fretta (grafico a sinistra). Nel corso si usa questa convenzione: fino a 8 ingressi, una porta AND o OR ha sempre lo stesso ritardo, che si chiama $Delta t$ ("delta t": la lettera greca $Delta$ indica un intervallo, qui di tempo). I tempi delle reti si contano in $Delta t$: $2 Delta t$ vuol dire due porte una dopo l'altra.
 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
 canvas(length: 0.7cm, {
@@ -862,7 +901,7 @@ In generale, una porta da $n$ ingressi fatta con porte da $k$ ingressi richiede 
 
 Il tempo di stabilizzazione di una rete si conta sui *livelli* di AND e OR che il segnale attraversa: le porte dello stesso livello lavorano insieme e costano un solo $Delta t$, i livelli uno dopo l'altro si sommano. Il MUX ha un livello di AND e uno di OR: $2 Delta t$. Vale per ogni somma di prodotti, finché termini e variabili non sono più di 8.
 
-Una rete si può costruire in due modi: da zero con i cinque passi, oppure *componendo* reti già fatte. Esempio: un MUX che sceglie fra *quattro* ingressi con due bit di controllo $c_0 c_1$ (qui $c_0$ è quello più a sinistra). La barretta con un numero indica quanti bit passano su un filo.
+Una rete si può costruire in due modi: da zero con i cinque passi, oppure *componendo* reti già fatte. Esempio: un MUX che sceglie fra *quattro* ingressi con due bit di controllo $c_0 c_1$ (qui $c_0$ è quello più a sinistra). Il simbolo è quello del MUX a due, con quattro ingressi: sopra ognuno c'è il valore di $c_0 c_1$ che lo sceglie (00 sceglie $x_0$, 11 sceglie $x_3$). La barretta col 2 vuol dire che su quel filo passano 2 bit, $c_0$ e $c_1$.
 
 #let tab-mux4 = {
   let righe = range(4).map(c => (0, 1).map(v => (
@@ -888,9 +927,14 @@ Una rete si può costruire in due modi: da zero con i cinque passi, oppure *comp
 $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overline(c_1) x_2 + c_0 c_1 x_3 $
 
 #let nc = none
-#align(center, grid(columns: 2, gutter: 2em, align: horizon,
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(rete-sp(($c_0$, $c_1$, $x_0$, $x_1$, $x_2$, $x_3$), ((0, 0, 1, nc, nc, nc), (0, 1, nc, 1, nc, nc), (1, 0, nc, nc, 1, nc), (1, 1, nc, nc, nc, 1))),
-    [Da zero: quattro AND e una OR, $2 Delta t$]),
+    [Da zero: quattro AND e una OR]),
+  [Come per il MUX a due, ogni prodotto diventa un AND (qui a sei ingressi, con il pallino sulle variabili negate) e un OR unisce i quattro AND. Il segnale attraversa un livello di AND e uno di OR: $2 Delta t$.],
+))
+
+#block(breakable: false, grid(columns: (1fr, auto), gutter: 2em, align: horizon,
+  [*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie ($x_0$ o $x_1$, $x_2$ o $x_3$), il più significativo $c_0$ sceglie quale coppia esce. Non serve la tabella, ma il segnale attraversa due MUX di fila: i due in alto lavorano insieme ($2 Delta t$), quello in basso deve aspettarli ($+ 2 Delta t$).],
   figura(canvas(length: 0.8cm, {
     import draw: *
     trap((0, 0)); trap((3.6, 0)); trap((1.8, -2))
@@ -904,15 +948,13 @@ $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overlin
   }), [Componendo tre MUX: $4 Delta t$]),
 ))
 
-*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie, il più significativo $c_0$ sceglie la coppia. Non serve la tabella, ma il segnale attraversa due MUX di fila: $2 Delta t + 2 Delta t = 4 Delta t$. I due MUX in alto lavorano insieme, quindi contano una volta sola.
-
 #nota[*Regola generale*: la rete progettata da zero ha un tempo di stabilizzazione minore o uguale a quella ottenuta componendo, perché è ottimizzata tutta insieme. Comporre però costa molta meno fatica.]
 
 == Componenti
 
-Alcune reti si usano così spesso che diventano mattoni pronti, come il MUX.
+Il MUX a quattro si è costruito con MUX a due già pronti, senza ridisegnarne le porte. Per questo le reti che servono spesso si progettano una volta sola e poi si usano come *componenti*: blocchi col loro nome, da collegare fra loro.
 
-Il *full adder* (FA) fa una colonna della somma in binario: prende i due bit $x$ e $y$ e il riporto $r$ che arriva dalla colonna a destra, e calcola il bit del risultato e il riporto per la colonna a sinistra.
+Il primo componente serve a sommare. Nella somma in colonna (esempio qui sotto) ogni colonna fa la stessa cosa: somma i due bit $x$ e $y$ e il riporto $r$ arrivato da destra, scrive un bit del risultato e passa un riporto alla colonna a sinistra. La rete che fa una colonna è il *full adder* (FA).
 
 #let ris(b) = calc.rem(b.sum(), 2)
 #let rip(b) = if b.sum() >= 2 { 1 } else { 0 }
@@ -944,7 +986,7 @@ Per sommare numeri di $n$ bit si mettono $n$ FA *in cascata*: il riporto di ognu
 
 Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*: $n dot 2 Delta t = 2 n Delta t$. Con 2 bit sono $4 Delta t$. Se l'ultimo riporto vale 1, la somma di due numeri senza segno non sta in $n$ bit.
 
-Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
+Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
 figura(canvas(length: 0.8cm, {
@@ -988,7 +1030,7 @@ Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
-Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere.
+Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
 
 #block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
   canvas(length: 0.8cm, {
@@ -1003,7 +1045,7 @@ Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il co
    Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
 ))
 
-Il *comparatore* dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
+Il *comparatore* dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($x$, $y$), ($z$, b => if b.at(0) == b.at(1) { 1 } else { 0 })),
@@ -1037,7 +1079,7 @@ Il *codificatore* ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ u
 
 #nota[All'esame $2 Delta t$ è la risposta giusta solo se i livelli sono due. Conta sempre i livelli: il demultiplexer ne ha uno ($1 Delta t$), due FA in cascata ne hanno quattro ($4 Delta t$).]
 
-Costruire una rete componendo mattoni pronti, come nel circuito che somma e sottrae, si chiama *approccio strutturale*. Si parte da uno pseudocodice fatto di funzioni e scelte, e ogni pezzo diventa un componente: ogni funzione è una rete, la condizione è una rete con un bit d'uscita, e l'`if` è un MUX comandato da quel bit.
+Costruire una rete collegando componenti, come il MUX a quattro o il circuito che somma e sottrae, si chiama *approccio strutturale*. Si parte da uno pseudocodice fatto di funzioni e scelte, e ogni pezzo diventa un componente: ogni funzione è una rete, la condizione è una rete con un bit d'uscita, e l'`if` è un MUX comandato da quel bit. Nei disegni $x$ entra in tutti i blocchi; il MUX fa uscire il risultato di F se la condizione vale 1 (qui l'ingresso 1 è a sinistra), quello di G se vale 0.
 
 #align(center, grid(columns: 2, gutter: 4em, align: center + bottom,
   [#se-allora([cond], [F], [G]) \ `if (cond) f(x) else g(x)`],
@@ -1066,7 +1108,7 @@ Semplificare quindi non sempre fa guadagnare tempo, ma fa risparmiare porte: men
 
 $ "rip" = y r + x r + x y $
 
-Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*.
+Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*. Nell'angolo in alto a sinistra, sopra la diagonale ci sono le variabili delle colonne, sotto quelle delle righe; ogni cella è il valore dell'uscita per quella combinazione (gli 0 in grigio).
 
 #let ka(c, r) = {
   let ((x, y), (a, b)) = (c, r)
@@ -1074,7 +1116,7 @@ Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di 
 }
 #block(breakable: false, align(center, grid(columns: 3, gutter: 2.5em, align: center + bottom,
   [#kmap(($x$,), ($y$,), (c, r) => if c == r { 1 } else { 0 }) \ #text(9pt)[2 variabili: \ il comparatore a un bit]],
-  [#kmap(($x$, $y$), ($a$, $b$), ka) \ #text(9pt)[4 variabili]],
+  [#kmap(($x$, $y$), ($a$, $b$), ka) \ #text(9pt)[4 variabili: \ una funzione di esempio]],
   [#kmap(($x$, $y$), ($a$, $b$), ka, gruppi: ((0, 0, 2, 2, blu), (0, 3, 4, 1, verde), (-0.35, 1.06, 1.35, 0.88, red), (3, 1.06, 1.35, 0.88, red))) \ #text(9pt)[gli stessi 1 raccolti in tre gruppi]],
 )))
 
@@ -1112,3 +1154,778 @@ Nel codificatore molte combinazioni di ingressi non sono ammesse: sulla mappa si
 Due gruppi da 8 per ogni uscita: spariscono tre variabili su quattro, e ogni uscita diventa un solo OR.
 
 Con 5 variabili servirebbero due mappe 4 × 4 una sopra l'altra, una per ogni valore della quinta variabile. Per questo oltre le 4 variabili le mappe non si usano.
+
+Due esempi mettono insieme tutto. Il primo, su $x$ di 4 bit $x_3 x_2 x_1 x_0$:
+
+```c
+if (x è pari)  { if (x è divisibile per 4) z = 1; else z = 0; }
+else           z = 1;
+```
+
+*Con l'approccio strutturale* servono due condizioni:
+
+- $x$ pari: $x_0 = 0$, cioè $overline(x_0)$;
+- $x$ divisibile per 4: dividere per $4 = 2^2$ vuol dire spostare i bit di due posti a destra (_shift_). I due bit che escono, $x_1 x_0$, sono il resto $x mod 4$: deve essere 00. "Tutti e due 0" è un OR negato (NOR): l'OR vale 0 solo se entrambi sono 0. Per De Morgan è lo stesso che $overline(x_1) dot overline(x_0)$.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    trap((0, 0))
+    content((0.5, 1), [1]); fr((0.5, 0.75), (0.5, 0))
+    porta-nor((2.6, 1.3), h: 1)
+    for (y, t) in ((1.6, $x_1$), (1, $x_0$)) { line((2, y), (2.7, y)); content((1.7, y), t) }
+    line((3.86, 1.3), (4.1, 1.3), (4.1, 0.45), (1.5, 0.45)); fr((1.5, 0.45), (1.5, 0))
+    content((-1.6, -0.35), $x_0$); line((-1.3, -0.35), (-0.01, -0.35)); circle((0.07, -0.35), radius: 0.08)
+    content((-0.6, -0.05), text(8pt)[pari])
+    fr((1, -0.7), (1, -1.3)); content((1, -1.6), $z$)
+  }), [Due `if` → due MUX; il secondo si riduce a una NOR]),
+  [
+    Ogni `if` è un MUX. Quello interno sceglie 1 se la NOR vale 1 e 0 se vale 0: la sua uscita è la NOR stessa, quindi il MUX si butta e resta la NOR. Quello esterno è comandato da $overline(x_0)$: dispari → 1, pari → la NOR.
+
+    Altra semplificazione: nel ramo "pari" si sa già che $x_0 = 0$, quindi basta controllare $x_1 = 0$.
+  ],
+))
+
+*Con tabella e mappa*: $z = 1$ se $x_0 = 1$ (dispari) oppure se $x_1 x_0 = 00$. Ogni condizione riassume 8 righe della tabella:
+
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
+  table(columns: 5, align: center, inset: 5pt,
+    stroke: (x, y) => if x == 3 { (right: 1pt) } + if y == 0 { (bottom: 1pt) },
+    $x_3$, $x_2$, $x_1$, $x_0$, $z$,
+    [−], [−], [−], [1], [1],
+    [−], [−], [0], [0], [1],
+  ),
+  kmap(($x_1$, $x_0$), ($x_3$, $x_2$), (c, r) => if c == (1, 0) { 0 } else { 1 },
+    gruppi: ((0, 0, 2, 4, red), (1.06, 0.06, 1.88, 3.88, blu))),
+  [Dalla tabella: $z = x_0 + overline(x_1) thin overline(x_0)$. \
+   Sulla mappa due gruppi da 8, che *possono sovrapporsi*: basta che coprano tutti gli 1, i più grandi possibile. \
+   $z = #text(fill: red)[$overline(x_1)$] + #text(fill: blu)[$x_0$]$: più semplice.],
+))
+
+Il secondo esempio è un *moltiplicatore* di due numeri senza segno da 2 bit: $x_1 x_0 dot y_1 y_0 = z_3 z_2 z_1 z_0$. L'uscita ha 4 bit, perché moltiplicando i bit raddoppiano: $3 dot 3 = 9 = 1001$.
+
+#let molt(b) = (b.at(0) * 2 + b.at(1)) * (b.at(2) * 2 + b.at(3))
+#let zk(k) = b => calc.rem(calc.quo(molt(b), calc.pow(2, k)), 2)
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  tvb(($x_1$, $x_0$, $y_1$, $y_0$), ($z_3$, zk(3)), ($z_2$, zk(2)), ($z_1$, zk(1)), ($z_0$, zk(0))),
+  [
+    Se $x = 0$ il prodotto è 0; se $x = 1$ si ricopia $y$; e così via. Si cercano poi gli 1 in righe che differiscono per *un solo bit*: quel bit si raccoglie e sparisce, come su una mappa.
+
+    $ z_3 &= x_1 x_0 y_1 y_0 \
+      z_2 &= x_1 overline(x_0) y_1 + x_1 y_1 overline(y_0) \
+      z_1 &= overline(x_1) x_0 y_1 + x_1 overline(x_0) y_0 + x_1 x_0 overline(y_1) y_0 + x_1 x_0 y_1 overline(y_0) \
+      z_0 &= overline(x_1) x_0 y_0 + x_1 x_0 y_0 = x_0 y_0 $
+
+    Per $z_2$: le righe 1010 e 1011 differiscono solo per $y_0$, e danno $x_1 overline(x_0) y_1$; 1010 e 1110 solo per $x_0$, e danno $x_1 y_1 overline(y_0)$.
+  ],
+))
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  kmap(($x_1$, $x_0$), ($y_1$, $y_0$), (c, r) => c.at(1) * r.at(1), gruppi: ((1, 1, 2, 2, blu),)),
+  [Per $z_0$ i due termini stanno lontani nella tabella (righe 0101-0111 e 1101-1111), e si vede che si raccolgono solo facendo il conto. Sulla mappa i quattro 1 sono un quadrato: $z_0 = x_0 y_0$ subito. È a questo che servono le mappe.],
+))
+
+Si può anche fare il contrario: partire da una rete già disegnata, scriverne la formula e chiedersi se si può calcolare la stessa cosa in modo più efficiente. Questa rete ha un AND per ogni termine (il pallino nega l'ingresso) e una OR che li raccoglie:
+
+#block(breakable: false, grid(columns: (auto, auto), gutter: 3em, align: horizon,
+  figura(rete-sp(($a$, $b$, $c$), ((0, 1, 1), (1, 1, 0), (1, 1, 1))), [La rete da leggere]),
+  figura(kmap(($b$, $c$), ($a$,), (c, r) => calc.max(c.at(0) * c.at(1), r.at(0) * c.at(0)),
+    gruppi: ((2, 0, 1, 2, blu), (2.06, 1.06, 1.88, 0.88, red))),
+    [#text(fill: blu)[$b c$]: la colonna 11, $a$ cambia \ #text(fill: red)[$a b$]: la riga $a = 1$, $c$ cambia]),
+))
+
+Il terzo termine differisce dal primo solo per $a$ e dal secondo solo per $c$: lo si usa due volte.
+
+$ z = overline(a) b c + a b overline(c) + a b c = underbrace(overline(a) b c + a b c, b c) + underbrace(a b overline(c) + a b c, a b) = b c + a b = b (c + a) $
+
+La mappa dà subito $b c + a b$: 2 AND e una OR. Il raccoglimento $b (c + a)$ invece sulla mappa non si vede: lì si cercano solo i gruppi più grandi. Raccogliendo resta una OR e un AND, una porta in meno. I livelli sono sempre due, quindi $2 Delta t$. La rete di partenza ha due livelli solo con porte da 8 ingressi: con porte da 2, l'AND da tre e l'OR da tre diventano due livelli ciascuno, e i livelli sono 4.
+
+Le mappe convengono soprattutto quando gli 1 sono tanti. Ne è un esempio il *display a sette segmenti* di calcolatrici e orologi: ogni cifra si forma accendendo alcuni dei sette segmenti, che per convenzione si chiamano $a$…$g$ ($a$ in alto, poi in senso orario, $g$ al centro; il punto decimale qui non serve). La rete riceve una cifra da 0 a 9 in binario, $x_3 x_2 x_1 x_0$, e dà 1 sui segmenti da accendere e 0 su quelli da lasciare spenti.
+
+#let seg = ("1111110", "0110000", "1101101", "1111001", "0110011", "1011011", "1011111", "1110000", "1111111", "1111011")
+#let display(acceso, nomi: false) = canvas(length: 0.65cm, {
+  import draw: *
+  let pezzi = (((0.25, 2), (1.15, 2)), ((1.3, 1.85), (1.3, 1.15)), ((1.3, 0.85), (1.3, 0.15)), ((0.25, 0), (1.15, 0)),
+    ((0.1, 0.15), (0.1, 0.85)), ((0.1, 1.15), (0.1, 1.85)), ((0.25, 1), (1.15, 1)))
+  for (k, (p, q)) in pezzi.enumerate() {
+    line(p, q, stroke: (paint: if acceso.at(k) == "1" { red } else { luma(225) }, thickness: 4pt, cap: "round"))
+  }
+  if nomi {
+    for (t, p) in ($a$, $b$, $c$, $d$, $e$, $f$, $g$).zip(((0.7, 2.45), (1.75, 1.5), (1.75, 0.5), (0.7, -0.45), (-0.35, 0.5), (-0.35, 1.5), (0.7, 1.4))) {
+      content(p, text(8pt, t))
+    }
+  }
+})
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
+  figura(display("1111111", nomi: true), [I nomi dei segmenti]),
+  figura(display(seg.at(4)), [Il 4 = 0100: \ $f, b, g, c$ accesi]),
+  table(columns: 12, align: center, inset: 3.5pt,
+    stroke: (x, y) => if x == 0 or x == 4 { (right: 1pt) } + if y == 0 { (bottom: 1pt) },
+    [cifra], $x_3$, $x_2$, $x_1$, $x_0$, ..($a$, $b$, $c$, $d$, $e$, $f$, $g$),
+    ..range(10).map(n => ([#n], ..range(4).map(i => [#calc.rem(calc.quo(n, calc.pow(2, 3 - i)), 2)]),
+      ..seg.at(n).clusters().map(v => if v == "1" { text(fill: blu, weight: "bold")[1] } else [0]))).flatten()),
+))
+
+Sette colonne d'uscita sono sette reti combinatorie, ognuna con 4 ingressi, e quindi sette mappe. Per $g$ la somma di prodotti avrebbe 7 termini da 4 variabili ($overline(x_3) thin overline(x_2) x_1 overline(x_0) + dots$). Sulla mappa conviene mettere prima i tre 0 (cifre 0, 1 e 7) e riempire il resto. Le combinazioni da 1010 a 1111 (da 10 a 15) non sono cifre e non capitano mai: sono − come nel codificatore, e si contano come 1 dove serve.
+
+#let arancio = rgb("#e08a00")
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  kmap(x10, x32, (c, r) => {
+    let n = r.at(0) * 8 + r.at(1) * 4 + c.at(0) * 2 + c.at(1)
+    if n > 9 [−] else { int(seg.at(n).at(6)) }
+  }, gruppi: ((0, 2, 4, 2, blu), (3.06, 0.06, 0.88, 3.88, verde), (0.12, 1.12, 1.76, 1.76, red),
+    (2.12, -0.35, 1.76, 1.3, arancio), (2.12, 3.05, 1.76, 1.3, arancio))),
+  [
+    - #text(fill: blu)[blu], 8 celle: le righe 11 e 10, conta solo $x_3 = 1$. Termine $x_3$.
+    - #text(fill: verde)[verde], 4 celle: la colonna 10. Termine $x_1 overline(x_0)$.
+    - #text(fill: red)[rosso], 4 celle: righe 01 e 11, colonne 00 e 01. Termine $overline(x_1) x_2$.
+    - #text(fill: arancio)[arancio], 4 celle: righe 00 e 10 (la mappa si richiude sopra e sotto), colonne 11 e 10. Termine $x_1 overline(x_2)$.
+
+    $ g = x_3 + x_1 overline(x_0) + overline(x_1) x_2 + x_1 overline(x_2) $
+  ],
+))
+
+I gruppi si sovrappongono, ma va bene: un 1 coperto due volte non costa niente, mentre un gruppo da 4 toglie due variabili e uno da 2 una sola. Coprire gli stessi 1 con gruppi da 2 e da 1 darebbe termini più lunghi.
+
+== Descrivere le reti in Verilog
+
+Una rete progettata sulla carta si può provare al calcolatore prima di costruirla, perché stamparla sul silicio è lungo e costoso. Si usa un *HDL* (_Hardware Description Language_): un linguaggio di programmazione che invece di un algoritmo descrive come funziona un circuito. I più usati sono VHDL e *Verilog*; nel corso si usa Verilog (versione 2003, non il SystemVerilog del libro), perché ha strumenti gratuiti per ogni sistema operativo:
+
+#align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
+  box(stroke: 0.6pt, inset: 7pt)[`mux.v` \ il circuito], align(horizon)[+],
+  box(stroke: 0.6pt, inset: 7pt)[`test.v` \ la prova], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: azzurro)[*iverilog* \ compila], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: azzurro)[*vvp* \ simula], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt)[`test.vcd` \ i risultati], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: rgb("#fff3c4"))[*gtkwave* \ forme d'onda],
+)))
+
+```sh
+$ iverilog mux.v test.v      # compila: crea a.out
+$ vvp a.out                  # simula: scrive test.vcd (basta anche ./a.out)
+$ gtkwave test.vcd           # mostra i segnali nel tempo
+```
+
+Ogni pezzo di circuito è un *modulo*, che si scrive come una funzione: i parametri sono i fili d'ingresso (`input`) e d'uscita (`output`), di solito prima le uscite. Un nome solo vuol dire un filo da 1 bit. Il MUX si può scrivere in tre modi.
+
+*1. Come tabella di verità*, con una `primitive`. Ogni riga dà i valori degli ingressi nell'ordine dei parametri, poi `:` e l'uscita; `?` è il valore che non conta (il − delle tabelle).
+
+```verilog
+primitive mux(output z, input x, input y, input c);
+  table
+  // x y c : z
+     0 ? 0 : 0;
+     1 ? 0 : 1;
+     ? 0 1 : 0;
+     ? 1 1 : 1;
+  endtable
+endprimitive
+```
+
+#nota[Una `primitive` ha *una sola uscita* da 1 bit, e la tabella deve coprire *tutte* le combinazioni, anche quelle con uscita 0. Se mancano, lì l'uscita non vale 0 ma `x` (non definito).]
+
+*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
+
+```verilog
+module mux(output z, input x, input y, input c);
+  assign z = !c && x || c && y;
+endmodule
+```
+
+#align(center, table(columns: 4, align: center,
+  [], [AND], [OR], [NOT],
+  [in Verilog], [`&&` oppure `&`], [`||` oppure `|`], [`!` oppure `~`],
+))
+
+Si possono usare anche le *porte già pronte* `and`, `or`, `not`: il primo parametro è l'uscita. I collegamenti interni sono fili, dichiarati con `wire`.
+
+```verilog
+module mux(output z, input x, input y, input c);
+  wire nc, a1, a2;
+  not(nc, c);
+  and(a1, nc, x);
+  and(a2, c, y);
+  or(z, a1, a2);
+endmodule
+```
+
+*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e `parameter` dà a N un valore che si può cambiare per ogni copia del modulo.
+
+```verilog
+module mux(output [N-1:0] z, input [N-1:0] x, input [N-1:0] y, input c);
+  parameter N = 32;
+  assign z = (c == 0 ? x : y);
+endmodule
+```
+
+Le costanti si scrivono con bit, base e valore: `1'b0` è 0 su 1 bit in binario, `16'd5` è 5 su 16 bit scritto in decimale.
+
+Per provare il modulo si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
+
+```verilog
+module test;
+  reg x, y, c;                 // ingressi: il test ci scrive i valori
+  wire z;                      // uscita: si può solo leggere
+  mux m(z, x, y, c);           // per il mux a N bit: mux #(1) m(z, x, y, c);
+  integer i;
+  initial begin                // eseguito all'accensione
+    $dumpfile("test.vcd");     // dove salvare i risultati
+    $dumpvars;                 // salva ogni cambiamento dei segnali
+    for (i = 0; i < 8; i++) begin
+      {x, y, c} = i;           // i in binario: x è il bit più a sinistra
+      #2;                      // aspetta 2 unità di tempo
+    end
+    $finish;                   // fine, altrimenti la simulazione non termina
+  end
+endmodule
+```
+
+Le graffe `{x, y, c}` *mettono insieme* tre fili in un numero da 3 bit: il `for` da 0 a 7 prova così tutte le combinazioni degli ingressi. Con `$monitor(...)` il test stampa anche i valori a ogni cambiamento, e con un `if` può controllare da solo se l'uscita è quella giusta.
+
+#figura(onde(w: 0.65, range(3).map(k => ((($x$, $y$, $c$).at(k)), range(8).map(i => calc.rem(calc.quo(i, calc.pow(2, 2 - k)), 2))))
+  + (($z$, range(8).map(i => if calc.rem(i, 2) == 0 { calc.quo(i, 4) } else { calc.rem(calc.quo(i, 2), 2) })),)),
+  [Quello che mostra gtkwave per il test: i da 0 a 7. Con $c = 0$ l'uscita copia $x$, con $c = 1$ copia $y$])
+
+I moduli si *compongono*: un modulo può contenere copie di altri moduli. Il full adder ha due uscite, quindi non sta in una `primitive`: si scrivono due tabelle, una per il risultato e una per il riporto, e un modulo che le usa tutte e due sugli stessi ingressi.
+
+```verilog
+primitive far(output z, input x, input y, input r);   // risultato
+  table  0 0 0 : 0;  0 0 1 : 1;  0 1 0 : 1;  0 1 1 : 0;
+         1 0 0 : 1;  1 0 1 : 0;  1 1 0 : 0;  1 1 1 : 1;  endtable
+endprimitive
+
+primitive fac(output c, input x, input y, input r);   // riporto
+  table  0 0 0 : 0;  0 0 1 : 0;  0 1 0 : 0;  0 1 1 : 1;
+         1 0 0 : 0;  1 0 1 : 1;  1 1 0 : 1;  1 1 1 : 1;  endtable
+endprimitive
+
+module fa(output c, output z, input x, input y, input r);
+  far ris(z, x, y, r);
+  fac car(c, x, y, r);
+endmodule
+```
+
+Allo stesso modo due `fa`, col riporto del primo portato al secondo da un `wire`, fanno il sommatore a 2 bit; e così via fino a un processore intero, un pezzo alla volta, provando ogni pezzo da solo.
+
+La simulazione mostra anche cose che sulla carta sfuggono. Finora il NOT costava 0, ma in realtà un po' di tempo lo prende. Supponiamo allora che *ogni* porta, NOT compreso, risponda dopo un'unità di tempo. In Verilog si scrive `#1` dopo `assign`: ogni volta che cambia un ingresso, l'uscita si aggiorna un'unità di tempo dopo. Con queste porte "lente" si ricostruisce il MUX:
+
+```verilog
+module and_d(output z, input x, input y);
+  assign #1 z = x && y;            // or_d e not_d uguali, con || e !
+endmodule
+
+module mux_d(output z, input x, input y, input c);
+  wire w1, w2, w3;
+  not_d n(w1, c);                  // w1 = not c
+  and_d a1(w2, x, w1);             // w2 = not c and x
+  and_d a2(w3, y, c);              // w3 = c and y
+  or_d  o(z, w2, w3);
+endmodule
+```
+
+#let al-n = 12
+#let prima(v, i) = v.at(calc.max(i - 1, 0))
+#let al-c = range(al-n).map(i => if i < 3 or i >= 8 { 1 } else { 0 })
+#let al-w1 = range(al-n).map(i => 1 - prima(al-c, i))
+#let al-w2 = range(al-n).map(i => prima(al-w1, i))   // x = 1
+#let al-w3 = range(al-n).map(i => prima(al-c, i))    // y = 1
+#let al-z = range(al-n).map(i => calc.max(prima(al-w2, i), prima(al-w3, i)))
+#let al-z2 = range(al-n).map(i => calc.max(prima(al-w2, i), prima(al-w3, i), 1))   // in più x and y = 1
+Il test tiene $x = y = 1$ e cambia solo $c$: l'uscita dovrebbe restare 1, qualunque ingresso si scelga. Ecco invece cosa mostra gtkwave (ogni colonna è un'unità di tempo):
+
+#figura(onde(w: 0.55, righe: (3, 8), (($c$, al-c), ($overline(c)$, al-w1), ($overline(c) x$, al-w2), ($c y$, al-w3), ($z$, al-z), ([$z$ con $x y$], al-z2))),
+  [Quando $c$ scende, $c y$ va a 0 dopo un'unità, $overline(c) x$ sale solo dopo due (NOT e poi AND): \ per un'unità l'OR vede due 0, e $z$ ha un buco. Quando $c$ risale non succede])
+
+Questo disturbo si chiama *alea*: per un attimo l'uscita vale il contrario di quello che dovrebbe. Sulla mappa si vede da dove viene. Con $x = y = 1$ il passaggio è fra due 1 vicini che stanno in due gruppi diversi, $overline(c) x$ e $c y$: per un attimo nessuno dei due termini vale 1. Ogni salto di questo tipo può dare un'alea, ma non è detto che succeda.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  kmap(($x$, $y$), ($c$,), (c, r) => if r.at(0) == 0 { c.at(0) } else { c.at(1) },
+    gruppi: ((2.06, 0.06, 1.88, 0.88, red), (1.06, 1.06, 1.88, 0.88, red), (2, 0, 1, 2, blu))),
+  [Si toglie aggiungendo un gruppo che copre i due 1 del passaggio, #text(fill: blu)[la colonna $x y = 11$]:
+   $ z = overline(c) x + c y + #text(fill: blu)[$x y$] $
+   Il termine $x y$ non copre nessun 1 nuovo, ma con $x = y = 1$ tiene l'uscita a 1 qualunque cosa faccia $c$: nell'ultima riga delle forme d'onda il buco non c'è più.],
+))
+
+Il prezzo è un AND in più e un ingresso in più nell'OR: con porte da 8 i livelli restano due, con porte da 2 l'OR da tre diventa un albero e il ritardo cresce.
+
+Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su una *FPGA*: un chip con una griglia di milioni di celle, dove ogni cella si può configurare come una piccola funzione (4-5 bit d'ingresso, 1 d'uscita), come registro da 1 bit, o come incrocio che instrada i segnali fra le celle vicine. Il Verilog compilato dice come configurare le celle; la configurazione si scrive sul chip come su una chiavetta, e resta anche a corrente spenta. Collegando interruttori ai piedini si prova il circuito vero. L'FPGA si può riprogrammare: oggi un MUX, domani un full adder.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.45cm, {
+    import draw: *
+    for i in range(7) { for j in range(5) {
+      let usata = (i, j) in ((1, 1), (2, 1), (2, 2), (4, 3))
+      rect((i, -j), (i + 0.7, -j - 0.7), fill: if usata { rgb("#fff3c4") } else { azzurro }, stroke: 0.4pt)
+    } }
+    line((1.7, -1.35), (2, -1.35), stroke: 1pt + red); line((2.35, -1.7), (2.35, -2), stroke: 1pt + red)
+    line((2.7, -2.35), (4.35, -2.35), (4.35, -3), stroke: 1pt + red)
+  }), [FPGA: in giallo le celle usate, \ in rosso i segnali fra loro]),
+  figura(align(left, text(9pt, stack(dir: ltr, spacing: 0.4em,
+    box(stroke: 0.6pt, inset: 6pt)[Verilog], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[simulazione \ (iverilog)], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[prova \ su FPGA], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: rgb("#fff3c4"))[_silicon compiler_ \ → maschere → fonderia],
+  ))), [Il percorso dal Verilog al chip]),
+))
+
+Ogni cella dell'FPGA calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  let regs = ((1.1, "0", "1111110"), (2.9, "1", "0110000"), (4.7, "2", "1101101"), (8.7, "9", "1111011"))
+  line((0, 0), (10, 0), (9.6, -0.7), (0.4, -0.7), close: true, fill: azzurro)
+  for (x, n, v) in regs {
+    content((x, 1.75), text(8pt)[#n])
+    rect((x - 0.75, 1.5), (x + 0.75, 1.05), fill: rgb("#fff3c4")); content((x, 1.27), text(7pt, mono(v)))
+    fr((x, 1.05), (x, 0)); bus((x, 0.5), [7])
+    content((x, -0.22), text(7pt, mono(c2(int(n), 4))))
+  }
+  content((6.7, 1.27), [⋯]); content((6.7, -0.22), text(7pt)[⋯])
+  content((-1.6, -0.35), $x_3 x_2 x_1 x_0$); fr((-0.6, -0.35), (0.25, -0.35)); bus((-0.2, -0.35), [4])
+  fr((5, -0.7), (5, -1.5)); bus((5, -1.1), [7]); content((5, -1.8), text(9pt)[ai segmenti $a, b, c, d, e, f, g$])
+}), [La tabella del display in registri: la cifra sceglie quale riga esce])
+
+Quando tutto funziona, un *silicon compiler* prende lo stesso Verilog e produce tutto quello che serve per stampare il chip: le *maschere* da mandare alla fonderia.
+
+== Memoria: latch, flip-flop, registro
+
+Finora le reti calcolavano funzioni: stesso ingresso, stessa uscita. Una rete *sequenziale* invece *ricorda*: l'uscita dipende dalla sequenza di ingressi ricevuti. Il mattone è un circuito a cui si può dire "ricordati 1" o "ricordati 0", con due uscite: $Q$, il valore ricordato, e $overline(Q)$, il suo negato. L'obiettivo è il *registro*:
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  canvas(length: 0.8cm, {
+    import draw: *
+    rect((0, 0), (2.4, -1.2), fill: azzurro); content((1.2, -0.6), [registro])
+    content((1.2, 1.1), $x$); fr((1.2, 0.85), (1.2, 0)); bus((1.2, 0.45), $n$)
+    fr((1.2, -1.2), (1.2, -2)); content((1.2, -2.3), $z$); bus((1.2, -1.6), $n$)
+    fr((-1.2, -0.3), (0, -0.3), stroke: (dash: "dashed")); content((-1.4, -0.3), anchor: "east", text(9pt)[clock])
+    fr((-1.2, -0.9), (0, -0.9)); content((-1.4, -0.9), anchor: "east", text(9pt)[WE])
+  }),
+  [Se *clock = 1 e WE = 1* (_write enable_, "scrittura abilitata"), il registro si ricorda l'ingresso $x$ di $n$ bit: da lì in poi $z$ vale $x$. Altrimenti continua a ricordare il valore di prima, come un foglio dove resta scritto l'ultimo numero finché non lo si cancella. Il clock è il segnale che sale e scende a ritmo fisso, visto all'inizio; nei disegni il suo filo è tratteggiato.],
+))
+
+Ci si arriva in quattro passi, dal più semplice, facendo prima il circuito per *un bit*.
+
+Il primo è il *latch SR* (_Set Reset_): due porte NOR (OR seguito da NOT) con le uscite *incrociate*, cioè l'uscita di ognuna torna indietro come ingresso dell'altra. $S = 1$ vuol dire "ricordati 1", $R = 1$ "ricordati 0".
+
+#let sr-s = (0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1)
+#let sr-r = (0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1)
+#let sr-q = sim(12, (i, p) => if sr-s.at(i) == 1 { 1 - sr-r.at(i) } else if sr-r.at(i) == 1 { 0 } else { p })
+#let sr-nq = range(12).map(i => if sr-s.at(i) + sr-r.at(i) == 2 { 0 } else if sr-q.at(i) == none { none } else { 1 - sr-q.at(i) })
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    porta-nor((1.5, 1.6)); porta-nor((1.5, -0.4))
+    content((0.2, 1.8), $R$); line((0.45, 1.8), (1.6, 1.8))
+    content((0.2, -0.6), $S$); line((0.45, -0.6), (1.6, -0.6))
+    line((2.65, 1.6), (4, 1.6)); content((4.3, 1.6), $Q$)
+    line((2.65, -0.4), (4, -0.4)); content((4.3, -0.4), $overline(Q)$)
+    circle((3.3, 1.6), radius: 0.05, fill: black); circle((3, -0.4), radius: 0.05, fill: black)
+    line((3.3, 1.6), (3.3, 1), (1, 0.3), (1, -0.2), (1.6, -0.2))
+    line((3, -0.4), (3, 0.2), (1.2, 0.9), (1.2, 1.4), (1.6, 1.4))
+  }), [Latch SR]),
+  table(columns: 4, align: center,
+    [$S$], [$R$], [$Q$], [],
+    [0], [0], [quello di prima], [ricorda],
+    [1], [0], [1], [_set_],
+    [0], [1], [0], [_reset_],
+    [1], [1], text(fill: red)[$Q = overline(Q) = 0$], text(fill: red)[vietato],
+  ),
+))
+
+Per capire perché funziona si segue il segnale. Con $R = 1$, $S = 0$: la NOR in alto ha un ingresso a 1, quindi dà $Q = 0$. Quello 0 torna nella NOR in basso, che ora ha tutti e due gli ingressi a 0 e dà $overline(Q) = 1$. A sua volta l'1 torna in alto, dove non cambia niente: il circuito si è *stabilizzato*. Se ora anche $R$ torna a 0, gli ingressi che rientrano dall'altra porta sono ancora quelli di prima, e $Q = 0$ resta. Con $S = 1$ succede lo stesso al contrario, perché il circuito è simmetrico. Il valore resta finché c'è corrente.
+
+#figura(onde(righe: (2, 6, 10), (($S$, sr-s), ($R$, sr-r), ($Q$, sr-q), ($overline(Q)$, sr-nq))),
+  [All'inizio $Q$ non è definito (grigio). Set, poi tutto a 0: ricorda 1. Reset: ricorda 0. Alla fine $S = R = 1$: $Q$ e $overline(Q)$ valgono tutti e due 0])
+
+In Verilog il latch si scrive con le porte, e le uscite incrociate sono fili; le forme d'onda qui sopra sono quelle che dà gtkwave simulandolo.
+
+```verilog
+module SR(output q, output notq, input s, input r);
+  wire w1, w2, nw1, nw2;
+  or(w1, r, nw2);   not(nw1, w1);     // NOR in alto
+  or(w2, s, nw1);   not(nw2, w2);     // NOR in basso
+  assign q = nw1;
+  assign notq = nw2;
+endmodule
+```
+
+Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Si risolve col secondo passo, il *latch D*: davanti al latch SR si mettono due AND, e due ingressi nuovi, il *clock*, che dice *quando* scrivere (quando vale 1), e $D$, che dice *cosa* scrivere. A $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$: $S$ e $R$ non possono più valere 1 insieme.
+
+#let dl-n = 16
+#let dl-c = clock(dl-n)
+#let dl-d = (0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0)
+#let dl-q = sim(dl-n, (i, p) => if dl-c.at(i) == 1 { dl-d.at(i) } else { p })
+#let ff-q = sim(dl-n, (i, p) => if i > 0 and dl-c.at(i) == 1 and dl-c.at(i - 1) == 0 { dl-d.at(i) } else { p })
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    rect((3, -0.3), (4.4, 2.1), fill: azzurro); content((3.7, 0.9), text(9pt)[latch \ SR])
+    content((3.25, 1.8), text(8pt)[R]); content((3.25, 0), text(8pt)[S])
+    porta-and((1.6, 1.8), h: 0.8); porta-and((1.6, 0), h: 0.8)
+    line((2.4, 1.8), (3, 1.8)); line((2.4, 0), (3, 0))
+    line((1.1, 2.6), (1.1, 0.2), (1.6, 0.2), stroke: (dash: "dashed")); line((1.1, 2), (1.6, 2), stroke: (dash: "dashed"))
+    content((1.1, 2.85), text(8pt)[clock])
+    content((-0.6, -0.2), $D$); line((-0.3, -0.2), (1.6, -0.2))
+    circle((0.4, -0.2), radius: 0.05, fill: black); line((0.4, -0.2), (0.4, 1.6), (1.44, 1.6)); circle((1.52, 1.6), radius: 0.08)
+    fr((4.4, 1.8), (5.1, 1.8)); content((5.4, 1.8), $Q$)
+    fr((4.4, 0), (5.1, 0)); content((5.4, 0), $overline(Q)$)
+  }), [Latch D (il clock si disegna tratteggiato)]),
+  figura(onde(righe: fronti(dl-n), (([clock], dl-c), ($D$, dl-d),
+    ($S$, range(dl-n).map(i => dl-c.at(i) * dl-d.at(i))), ($R$, range(dl-n).map(i => dl-c.at(i) * (1 - dl-d.at(i)))), ($Q$, dl-q))),
+    [Col clock alto: $D = 0$ fa un reset, $D = 1$ un set. Col clock basso $Q$ non cambia]),
+))
+
+Ma anche qui c'è un problema: *mentre il clock è 1* il latch copia $D$ in continuazione (si dice che è *trasparente*). Se $D$ cambia mentre il clock è alto, nello stesso ciclo arrivano un set e un reset, e $Q$ cambia due volte (terzo ciclo: prima un reset, poi un set). Invece in un ciclo di clock si deve scrivere un solo valore. Quindi *$D$ non può cambiare mentre il clock vale 1*.
+
+Il terzo passo toglie anche questo vincolo: il *flip-flop*, fatto di due latch D in fila. Il $Q$ del primo, il *master*, è il $D$ del secondo, lo *slave*. Lo slave riceve il clock, il master il clock *negato*: quando scrive uno, l'altro è *opaco* (non fa passare niente).
+
+#block(breakable: false, grid(columns: (auto, auto), gutter: 2.5em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    for (x, t) in ((0, [master]), (3, [slave])) {
+      rect((x, 0), (x + 1.6, -1.2), fill: azzurro); content((x + 0.8, -0.6), text(9pt)[latch D])
+      content((x + 0.8, -1.5), text(8pt, t))
+      line((x + 0.65, 0), (x + 0.8, -0.2), (x + 0.95, 0))
+    }
+    content((-1, -0.6), $D$); fr((-0.7, -0.6), (0, -0.6))
+    fr((1.6, -0.6), (3, -0.6)); content((2.3, -0.35), text(8pt)[$Q$ → $D$])
+    fr((4.6, -0.6), (5.3, -0.6)); content((5.6, -0.6), $Q$)
+    line((3.8, 1.2), (3.8, 0), stroke: (dash: "dashed")); line((0.8, 0.8), (0.8, 0.16), stroke: (dash: "dashed"))
+    circle((0.8, 0.08), radius: 0.08); circle((3.8, 0.8), radius: 0.05, fill: black)
+    line((3.8, 0.8), (0.8, 0.8), stroke: (dash: "dashed")); content((3.8, 1.45), text(8pt)[clock])
+  }), [Flip-flop master-slave: il pallino nega il clock del master]),
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    rect((0, 0), (1.2, -1.2), fill: azzurro)
+    line((0.45, 0), (0.6, -0.2), (0.75, 0)); line((0.6, 0.7), (0.6, 0), stroke: (dash: "dashed"))
+    content((-0.7, -0.6), $D$); fr((-0.45, -0.6), (0, -0.6)); fr((1.2, -0.6), (1.8, -0.6)); content((2.1, -0.6), $Q$)
+  }), [Simbolo: il triangolo \ è l'ingresso del clock]),
+))
+
+Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *sale* il master diventa opaco e lo slave copia quello che il master aveva scritto. Non c'è mai un momento in cui scrivono tutti e due, quindi il cammino da $D$ a $Q$ è sempre interrotto da qualche parte: $Q$ cambia *solo sul fronte di salita* del clock, e i cambiamenti di $D$ negli altri momenti non contano.
+
+#figura(onde(righe: fronti(dl-n), (([clock], dl-c), ($D$, dl-d), ([$Q$ latch D], dl-q), ([$Q$ flip-flop], ff-q))),
+  [Stessi ingressi: il latch D segue $D$ per tutto il tempo in cui il clock è alto, il flip-flop prende $D$ solo sul fronte di salita (linee tratteggiate)])
+
+L'ultimo passo è il *write enable*: invece di dare il clock direttamente al flip-flop, gli si dà clock AND WE. Con WE = 0 l'AND dà sempre 0, il flip-flop non vede mai salire il clock e tiene il suo valore. Un *registro da $n$ bit* è una fila di $n$ flip-flop, ognuno col suo bit, con lo stesso clock e lo stesso WE.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    porta-and((-0.6, 1.4), h: 0.8)
+    line((-1.3, 1.6), (-0.6, 1.6), stroke: (dash: "dashed")); content((-1.9, 1.6), text(8pt)[clock])
+    line((-1.3, 1.2), (-0.6, 1.2)); content((-1.7, 1.2), text(8pt)[WE])
+    line((0.2, 1.4), (0.5, 1.4), (0.5, -1.85))
+    for (k, y) in ((0, 0), (1, -1.6)) {
+      rect((1.2, y + 0.5), (2.4, y - 0.5), fill: azzurro)
+      line((1.2, y - 0.1), (1.4, y - 0.25), (1.2, y - 0.4))
+      circle((0.5, y - 0.25), radius: 0.05, fill: black); line((0.5, y - 0.25), (1.2, y - 0.25))
+      content((-1, y + 0.2), $x_#k$); fr((-0.7, y + 0.2), (1.2, y + 0.2))
+      fr((2.4, y), (3.1, y)); content((3.4, y), $z_#k$)
+    }
+  }), [Registro da 2 bit]),
+  [Ogni bit costa sempre più porte: il latch SR 2, il latch D 4 (il NOT non si conta), il flip-flop 8, con il WE 9.
+
+   Il registro si scrive sul fronte di salita del clock, ma l'uscita è stabile solo dopo un piccolo ritardo, $t_"reg"$, il tempo per attraversare le porte dello slave. Da lì fino al fronte di salita successivo l'uscita *non cambia*.],
+))
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  line((0, 0.9), (1.8, 0.9), (1.8, 1.4), (3.8, 1.4), (3.8, 0.9), (5.8, 0.9), (5.8, 1.4), (7.8, 1.4), (7.8, 0.9), (8.6, 0.9), stroke: 1.2pt + blu)
+  content((-0.7, 1.15), text(9pt)[clock])
+  for (a, b, t) in ((0, 1.8, [vecchio]), (2.3, 5.8, [nuovo valore]), (6.3, 8.6, [⋯])) {
+    rect((a, 0), (b, 0.5), stroke: 0.8pt + blu); content(((a + b) / 2, 0.25), text(8pt, t))
+  }
+  for x in (1.8, 5.8) { rect((x, 0), (x + 0.5, 0.5), fill: luma(225), stroke: none); line((x, 1.6), (x, -0.2), stroke: (dash: "dashed")) }
+  content((-0.7, 0.25), $Q$)
+  content((2.05, -0.45), text(8pt)[$t_"reg"$])
+  line((2.3, -0.4), (5.8, -0.4), mark: (start: "stealth", end: "stealth")); content((4.05, -0.75), text(8pt)[$Q$ non cambia])
+}), [Dopo il fronte di salita il registro è stabile per tutto il ciclo])
+
+== Reti sequenziali
+
+Con i registri una rete può ricordare qualcosa fra un ciclo di clock e l'altro. Ecco un problema dove serve: arriva una sequenza di bit, uno alla volta, e dopo ogni bit si vuole sapere se finora si è visto un numero *pari* di 1 (uscita 1) o dispari (uscita 0). È la *parità* della sequenza. Una rete combinatoria non basta, perché vede solo il bit di adesso. D'altra parte non serve ricordare tutta la sequenza: basta sapere se finora gli 1 sono pari o dispari, e ogni bit nuovo aggiorna questa informazione. Quello che la rete deve ricordare del passato è il suo *stato*: qui gli stati sono due, $S_0$ (pari) e $S_1$ (dispari).
+
+Gli stati, con le frecce che dicono in che stato si va a seconda dell'ingresso, formano un *automa*. Una *rete sequenziale* è una rete che realizza un automa. In un *automa di Moore* l'uscita dipende *solo dallo stato*, e si scrive dentro lo stato.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    let stato(p, nome, u) = {
+      circle(p, radius: 0.6, fill: azzurro)
+      content((p.at(0), p.at(1) + 0.22), nome); line((p.at(0) - 0.55, p.at(1)), (p.at(0) + 0.55, p.at(1)), stroke: 0.5pt)
+      content((p.at(0), p.at(1) - 0.25), u)
+    }
+    stato((0, 0), $S_0$, [1]); circle((0, 0), radius: 0.72)
+    stato((4, 0), $S_1$, [0])
+    bezier((0.5, 0.55), (3.5, 0.55), (2, 1.6), mark: (end: "stealth")); content((2, 1.35), [1])
+    bezier((3.5, -0.55), (0.5, -0.55), (2, -1.6), mark: (end: "stealth")); content((2, -1.35), [1])
+    bezier((-0.65, -0.35), (-0.65, 0.35), (-2, -1), (-2, 1), mark: (end: "stealth")); content((-1.75, 0), [0])
+    bezier((4.65, 0.35), (4.65, -0.35), (6, 1), (6, -1), mark: (end: "stealth")); content((5.75, 0), [0])
+  }), [Automa di Moore: nello stato sopra il nome, sotto l'uscita. \ $S_0$ (doppio cerchio) è lo stato iniziale]),
+  [
+    - $S_0$ = pari, uscita 1; $S_1$ = dispari, uscita 0.
+    - Un 0 non cambia la parità: si resta nello stesso stato.
+    - Un 1 la cambia: si passa all'altro stato.
+  ],
+))
+
+#let seq = (1, 0, 1, 1, 1, 0, 0, 0, 1)
+#let stati = seq.fold((0,), (s, b) => s + (calc.rem(s.last() + b, 2),))
+#align(center, table(columns: 11, align: center, inset: 5pt,
+  [ciclo], ..range(10).map(k => [#k]),
+  [stato], ..stati.map(s => [$S_#s$]),
+  [uscita], ..stati.map(s => text(fill: blu, weight: "bold")[#(1 - s)]),
+  [ingresso], ..seq.map(b => [#b]), [−],
+))
+
+L'automa si descrive con due funzioni:
+
+- la *funzione di transizione* $S'$ (o $sigma$): dato lo stato e l'ingresso, dà il prossimo stato. Va da stato × ingresso a stato;
+- la *funzione delle uscite* $Z$ (o $omega$): dato lo stato, dà l'uscita.
+
+Codificando $S_0 = 0$ e $S_1 = 1$, diventano tabelle di verità, quindi reti combinatorie:
+
+#block(breakable: false, align(center, grid(columns: 3, gutter: 3em, align: horizon,
+  tvb(($S$, $I$), ($S'$, b => calc.rem(b.sum(), 2))),
+  [$ S' = overline(S) I + S overline(I) \ O = overline(S) $],
+  tvb(($S$,), ($O$, b => 1 - b.at(0))),
+)))
+
+Manca un posto dove tenere lo stato: è un *registro*. Lo schema di una rete di Moore è sempre lo stesso: la rete $S'$ calcola il prossimo stato da ingresso e stato attuale, il registro lo memorizza al fronte di clock, e la rete $Z$ calcola l'uscita dal contenuto del registro.
+
+#let schema-fsm(mealy: false) = canvas(length: 0.8cm, {
+  import draw: *
+  let blocco(x, t) = { rect((x, -0.5), (x + 1.4, 0.5), fill: azzurro); content((x + 0.7, 0), t) }
+  content((-0.9, 0.2), $I$); fr((-0.6, 0.2), (1, 0.2))
+  blocco(1, $S'$)
+  fr((2.4, 0), (3.4, 0))
+  rect((3.4, -0.5), (4.4, 0.5), fill: rgb("#fff3c4")); content((3.9, -0.1), $R$)
+  line((3.75, 0.5), (3.9, 0.3), (4.05, 0.5)); line((3.9, 1.1), (3.9, 0.5), stroke: (dash: "dashed"))
+  content((3.9, 1.35), text(8pt)[clock])
+  fr((4.4, 0), (5.6, 0)); blocco(5.6, $Z$)
+  fr((7, 0), (7.7, 0)); content((8, 0), $O$)
+  circle((5, 0), radius: 0.05, fill: black)
+  line((5, 0), (5, -1.1), (0.5, -1.1), (0.5, -0.2)); fr((0.5, -0.2), (1, -0.2))
+  if mealy {
+    circle((0, 0.2), radius: 0.05, fill: black)
+    line((0, 0.2), (0, 1.9), (6.3, 1.9), stroke: red); fr((6.3, 1.9), (6.3, 0.5), stroke: red)
+  }
+})
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(schema-fsm(), [Rete di Moore]),
+  [Per la parità: $S'$ sono due AND e un OR ($2 Delta t$), il registro ha 1 bit, $Z$ è un NOT ($0$). Il registro ha WE = 1: a ogni ciclo di clock arriva un ingresso, e lo stato va sempre aggiornato.],
+))
+
+#figura(rete-sp(($S$, $I$), ((0, 1), (1, 0)), uscita: $S'$), [La rete $S'$ della parità; il suo ingresso $S$ è l'uscita del registro])
+
+A ogni ciclo di clock si presenta un bit della sequenza. All'inizio del ciclo il registro ha già il suo valore e l'ingresso $I$ resta fermo per tutto il ciclo: c'è il tempo di calcolare il nuovo stato, che si scrive nel registro al fronte successivo, e l'uscita.
+
+#block(sticky: true)[Il progetto di una rete sequenziale segue cinque passi:]
+
+#block(breakable: false, width: 100%, align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
+  box(stroke: 0.6pt, inset: 7pt)[1. automa], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: azzurro)[2. reti combinatorie \ $S'$ e $Z$], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt, fill: rgb("#fff3c4"))[3. registro di stato \ #text(8pt)[bit per tutti gli stati]], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt)[4. schema \ strutturale], align(horizon)[→],
+  box(stroke: 0.6pt, inset: 7pt)[5. ciclo \ di clock $tau$],
+))))
+
+Il registro deve avere abbastanza bit per numerare tutti gli stati: 2 stati, 1 bit; 4 stati, 2 bit. Il *ciclo di clock* $tau$ deve bastare perché si stabilizzino *tutte e due* le reti, più il tempo di scrittura del registro:
+
+$ tau = max(T_(S'), T_Z) + t_"reg" #h(3em) "parità:" quad tau = max(2 Delta t, 0) + t_"reg" = 2 Delta t + t_"reg" $
+
+#nota[Con un clock più corto si scriverebbe nel registro un valore non ancora stabile, oppure il registro cambierebbe mentre l'uscita si sta ancora calcolando, e l'uscita non si stabilizzerebbe mai.]
+
+In un *automa di Mealy* invece l'uscita dipende dallo stato *e dall'ingresso*: le uscite si scrivono sulle frecce, non negli stati. Lo schema è lo stesso, ma l'ingresso entra anche nella rete $Z$:
+
+#figura(schema-fsm(mealy: true), [Rete di Mealy: in rosso il collegamento in più])
+
+#let stato-m(p, nome, iniziale: false) = {
+  import draw: *
+  circle(p, radius: 0.45, fill: azzurro); content(p, nome)
+  if iniziale { circle(p, radius: 0.55) }
+}
+// freccia curva da a a b: piega > 0 la curva a sinistra di chi va da a verso b
+#let arco(a, b, t, piega: 0.5) = {
+  import draw: *
+  let (dx, dy) = (b.at(0) - a.at(0), b.at(1) - a.at(1))
+  let l = calc.sqrt(dx * dx + dy * dy)
+  let (ux, uy) = (dx / l, dy / l)
+  let (nx, ny) = (-uy, ux)
+  let s = if piega >= 0 { 1 } else { -1 }
+  let p0 = (a.at(0) + 0.5 * (0.8 * ux + 0.6 * s * nx), a.at(1) + 0.5 * (0.8 * uy + 0.6 * s * ny))
+  let p1 = (b.at(0) + 0.5 * (-0.8 * ux + 0.6 * s * nx), b.at(1) + 0.5 * (-0.8 * uy + 0.6 * s * ny))
+  let (mx, my) = ((a.at(0) + b.at(0)) / 2, (a.at(1) + b.at(1)) / 2)
+  bezier(p0, p1, (mx + 2 * piega * nx, my + 2 * piega * ny), mark: (end: "stealth"))
+  content((mx + (piega + 0.4 * s) * nx, my + (piega + 0.4 * s) * ny), text(8pt, t))
+}
+// freccia che torna nello stesso stato, sopra o sotto
+#let anello(p, t, su: true) = {
+  import draw: *
+  let s = if su { 1 } else { -1 }
+  let (x, y) = p
+  bezier((x - 0.25, y + s * 0.38), (x + 0.25, y + s * 0.38), (x - 0.7, y + s * 1.4), (x + 0.7, y + s * 1.4), mark: (end: "stealth"))
+  content((x, y + s * 1.45), text(8pt, t))
+}
+
+Per esempio la parità con un automa di Mealy. Gli stati restano due, $S_0$ pari e $S_1$ dispari, ma l'uscita si scrive sulla freccia, dopo l'ingresso: "1/0" vuol dire "arriva un 1, l'uscita è 0". Da $S_0$ un 0 lascia la parità pari: si resta in $S_0$ con uscita 1; un 1 la rende dispari: si va in $S_1$ con uscita 0. Da $S_1$ è lo stesso al contrario.
+
+#let seq-m = (0, 1, 0, 0, 1, 0, 1)
+#let stati-m = seq-m.fold((0,), (s, b) => s + (calc.rem(s.last() + b, 2),))
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    stato-m((0, 0), $S_0$, iniziale: true); stato-m((4, 0), $S_1$)
+    arco((0, 0), (4, 0), [1/0]); arco((4, 0), (0, 0), [1/1])
+    anello((0, 0), [0/1]); anello((4, 0), [0/0])
+  }), [Automa di Mealy per la parità: \ sulle frecce ingresso/uscita]),
+  [
+    #align(center, table(columns: 8, align: center, inset: 5pt,
+      [ciclo], ..range(7).map(k => [#k]),
+      [stato], ..stati-m.slice(0, 7).map(s => [$S_#s$]),
+      [ingresso], ..seq-m.map(b => [#b]),
+      [uscita], ..stati-m.slice(1).map(s => text(fill: blu, weight: "bold")[#(1 - s)]),
+    ))
+    Qui l'uscita di ogni ciclo conta già il bit appena arrivato.
+  ],
+))
+
+Codificando $S_0 = 0$, $S_1 = 1$, una sola tabella dà tutte e due le funzioni, perché ora anche l'uscita dipende da stato e ingresso:
+
+#block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
+  tvb(($S$, $I$), ($S'$, b => calc.rem(b.sum(), 2)), ($O$, b => 1 - calc.rem(b.sum(), 2))),
+  [$ S' &= overline(S) I + S overline(I) \ O &= overline(S) thin overline(I) + S I $
+   Lo schema è quello di Mealy qui sopra, con un registro da 1 bit. \
+   $ tau = max(T_(S'), T_Z) + t_"reg" = max(2 Delta t, 2 Delta t) + t_"reg" = 2 Delta t + t_"reg" $],
+)))
+
+Gli automi di Mealy di solito sono più compatti: un automa di Moore per lo stesso problema ha lo stesso numero di stati o qualcuno in più.
+
+Un uso tipico degli automi è *riconoscere una stringa*: arriva un simbolo per ciclo, e l'uscita vale 1 quando gli ultimi simboli formano la stringa cercata. Esempio: riconoscere $a b b a$ sull'alfabeto ${a, b}$, senza sovrapposizioni (l'$a$ finale di un $a b b a$ non conta come inizio del successivo). Ogni stato ricorda quanta parte della stringa si è già vista: $S_0$ niente, $S_1$ "$a$", $S_2$ "$a b$", $S_3$ "$a b b$".
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  for (k, x) in (0, 3, 6, 9).enumerate() { stato-m((x, 0), $S_#k$, iniziale: k == 0) }
+  anello((0, 0), [$b$/0]); anello((3, 0), [$a$/0])
+  arco((0, 0), (3, 0), [$a$/0]); arco((3, 0), (6, 0), [$b$/0]); arco((6, 0), (3, 0), [$a$/0]); arco((6, 0), (9, 0), [$b$/0])
+  arco((9, 0), (0, 0), [$b$/0], piega: 1.4); arco((9, 0), (0, 0), [$a$/#strong[1]], piega: 2.3)
+}), [Riconoscitore di $a b b a$ (Mealy)])
+
+- Una $a$ quando si aspettava una $b$ non butta via tutto: quella $a$ può essere l'inizio della stringa, quindi si va (o si resta) in $S_1$.
+- In $S_3$ una $b$ fa $a b b b$: si riparte da capo. Una $a$ completa $a b b a$: uscita 1, l'unica dell'automa, e si torna in $S_0$.
+
+Con Moore l'uscita sta negli stati, quindi serve uno stato in più: $S_4$, "ho appena visto $a b b a$", l'unico con uscita 1. Da lì si riparte: una $a$ è l'inizio di una nuova stringa e porta in $S_1$, una $b$ riporta in $S_0$.
+
+#figura(canvas(length: 0.75cm, {
+  import draw: *
+  for (k, x) in (0, 2.6, 5.2, 7.8, 10.4).enumerate() {
+    circle((x, 0), radius: 0.58, fill: azzurro); line((x - 0.56, -0.05), (x + 0.56, -0.05), stroke: 0.5pt)
+    content((x, 0.24), text(9pt, $S_#k$)); content((x, -0.3), text(9pt, if k == 4 { strong[1] } else [0]))
+    if k == 0 { circle((x, 0), radius: 0.68) }
+  }
+  anello((0, 0), [$b$]); anello((2.6, 0), [$a$])
+  arco((0, 0), (2.6, 0), [$a$]); arco((2.6, 0), (5.2, 0), [$b$]); arco((5.2, 0), (7.8, 0), [$b$]); arco((7.8, 0), (10.4, 0), [$a$])
+  arco((5.2, 0), (2.6, 0), [$a$], piega: 0.3); arco((7.8, 0), (0, 0), [$b$], piega: 1.3)
+  arco((10.4, 0), (2.6, 0), [$a$], piega: 2.1); arco((10.4, 0), (0, 0), [$b$], piega: 2.9)
+}), [Riconoscitore di $a b b a$ (Moore): nello stato sopra il nome, sotto l'uscita])
+
+Per provare i due automi si possono seguire $a b b a a b b a$ (riconosciuta due volte), $a b a b a b b a$ e $a b b a b a b$ (una volta ciascuna).
+
+Per la rete di Mealy si codificano gli stati col loro numero in due bit $s_1 s_0$ ($S_2 = 10$), $a = 0$ e $b = 1$ nell'ingresso $x$:
+
+#let abba = ((1, 0), (1, 2), (1, 3), (0, 0))   // prossimo stato con a e con b
+#let prossimo(b) = abba.at(b.at(0) * 2 + b.at(1)).at(b.at(2))
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  tvb(($s_1$, $s_0$, $x$), ($s'_1$, b => calc.quo(prossimo(b), 2)), ($s'_0$, b => calc.rem(prossimo(b), 2)),
+    ($z$, b => if b == (1, 1, 0) { 1 } else { 0 })),
+  [
+    $ z &= s_1 s_0 overline(x) \
+      s'_1 &= overline(s_1) s_0 x + s_1 overline(s_0) x \
+      s'_0 &= s_1 overline(s_0) + overline(s_1) thin overline(x) $
+    $z$ ha un solo 1: un solo AND, niente OR. In $s'_1$ i due 1 non si raccolgono. In $s'_0$ ci sono quattro 1: 100 e 101 differiscono solo per $x$ e danno $s_1 overline(s_0)$; 000 e 010 differiscono solo per $s_0$ e danno $overline(s_1) thin overline(x)$.
+  ],
+))
+
+== Reti sequenziali coi componenti
+
+Una rete sequenziale si può anche costruire direttamente con i componenti già visti, come si è fatto per le reti combinatorie con l'approccio strutturale.
+
+Esempio: uno stanzino con una sola porta, da cui passa una persona alla volta, con posto per due persone. Due ingressi: *in* vale 1 se entra una persona, *out* vale 1 se ne esce una. L'uscita $z$ comanda la lampadina: 1 accesa, 0 spenta. La luce deve restare accesa finché dentro c'è qualcuno. Sulle frecce dell'automa (di Mealy) ci sono i due ingressi *in out*, poi l'uscita; − vuol dire che quel bit non conta.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    stato-m((0, 0), $S_0$, iniziale: true); stato-m((4, 0), $S_1$); stato-m((8, 0), $S_2$)
+    anello((0, 0), [0−/0]); anello((4, 0), [00/1]); anello((4, 0), [11/1], su: false); anello((8, 0), [00/1])
+    arco((0, 0), (4, 0), [10/1]); arco((4, 0), (0, 0), [01/0]); arco((4, 0), (8, 0), [10/1]); arco((8, 0), (4, 0), [01/1])
+    for (x, t) in ((0, [vuoto, \ luce spenta]), (4, [1 persona]), (8, [2 persone])) { content((x, -2.3), text(8pt, t)) }
+  }), [Lo stanzino]),
+  [
+    - In $S_1$ con 11 uno esce e un altro entra: dentro resta una persona.
+    - Mancano i casi che non possono capitare: da $S_0$ non può uscire nessuno, in $S_2$ non può entrare nessuno.
+  ],
+))
+
+Quello che l'automa ricorda è *quante persone ci sono*: è un contatore. Allora si può costruire così:
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    let tratt = (dash: "dashed", paint: red)
+    trap((0, 0), w: 4, etichette: ("00", "01", "10", "11"))
+    line((0.5, 2.4), (4.8, 2.4)); circle((0.5, 2.4), radius: 0.05, fill: black)
+    for x in (0.5, 3.5) { fr((x, 2.4), (x, 0)) }
+    for (x, t) in ((1.5, [−1]), (2.5, [+1])) {
+      circle((x, 2.4), radius: 0.05, fill: black); fr((x, 2.4), (x, 1.75))
+      rect((x - 0.35, 1.75), (x + 0.35, 1.15), fill: white); content((x, 1.45), text(8pt, t)); fr((x, 1.15), (x, 0))
+    }
+    fr((-1.1, -0.35), (0.15, -0.35)); content((-1.3, -0.35), anchor: "east", text(9pt)[in out]); bus((-0.45, -0.35), [2])
+    fr((2, -0.7), (2, -1.3))
+    rect((1.2, -1.3), (2.8, -2), fill: rgb("#fff3c4")); content((2, -1.65), text(9pt)[registro])
+    fr((0.2, -1.65), (1.2, -1.65)); content((0.05, -1.65), anchor: "east", text(8pt)[WE = 1])
+    line((2, -2), (2, -3.65)); circle((2, -2.5), radius: 0.05, fill: black); line((2, -2.5), (4.8, -2.5), (4.8, 2.4))
+    circle((2, -3.25), radius: 0.05, fill: black)
+    line((2, -3.25), (2.4, -3.25)); line((2, -3.65), (2.4, -3.65))
+    content((1.6, -3.25), text(7pt)[$b_1$]); content((1.6, -3.65), text(7pt)[$b_0$])
+    porta-or((2.4, -3.45), h: 0.8); line((3.28, -3.45), (3.9, -3.45)); content((4.2, -3.45), $z$)
+    rect((-0.3, 2.75), (5.1, -0.9), stroke: tratt); content((5.3, 1.5), anchor: "west", text(8pt, fill: red)[prossimo \ stato])
+    rect((1, -1.15), (3, -2.15), stroke: tratt); content((5.3, -1.65), anchor: "west", text(8pt, fill: red)[registro \ di stato])
+    rect((1.3, -2.9), (4.5, -4.05), stroke: tratt); content((5.3, -3.45), anchor: "west", text(8pt, fill: red)[uscite])
+  }), [Lo stanzino coi componenti. In rosso \ le tre parti di una rete sequenziale]),
+  [
+    - Il registro ha 2 bit, quanti ne servono per contare 0, 1, 2.
+    - Un MUX a 4 ingressi, comandato da *in out*, sceglie il prossimo valore: 00 e 11 lo lasciano com'è, 01 toglie 1, 10 aggiunge 1. $+1$ e $-1$ sono gli `x++` e `x--` fatti con un sommatore.
+    - La luce è accesa se il contatore è 1 o 2, cioè se almeno un bit vale 1: $z = b_1 + b_0$, una OR.
+  ],
+))
+
+Funziona perché i casi impossibili non capitano: $-1$ arriva solo se qualcuno esce, quindi il contatore non va sotto 0, e $+1$ non lo porta oltre 2. È un modo "algoritmico" di fare una rete sequenziale: si pensa a cosa va ricordato e a come cambia, e si collegano componenti già pronti.
+
+Che rete è, di Mealy o di Moore? Gli ingressi *in out* arrivano solo alla parte che calcola il prossimo stato; l'OR vede solo il registro. L'uscita dipende solo dallo stato: è una rete di *Moore*.
+
+Ultimo esempio: chiudere le porte di un'aula dopo $k$ ingressi. Ogni volta che entra una persona arriva $x = 1$ (le uscite non si contano). L'uscita $z$ vale 0 con le porte aperte e 1 per chiuderle.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    rect((0, 0), (2, 0.8), fill: azzurro); content((1, 0.4), text(9pt)[sommatore])
+    content((1.5, 1.85), $x$); fr((1.5, 1.6), (1.5, 0.8))
+    fr((1, 0), (1, -1.4)); bus((1, -0.7), [8])
+    rect((0, -1.4), (2, -2.2), fill: rgb("#fff3c4")); content((1, -1.8), text(9pt)[registro])
+    line((0.6, -2.2), (0.6, -3.4), mark: (end: "stealth")); circle((0.6, -2.7), radius: 0.05, fill: black)
+    line((0.6, -2.7), (-0.8, -2.7), (-0.8, 1.2), (0.5, 1.2)); fr((0.5, 1.2), (0.5, 0.8))
+    content((1.75, -2.6), text(8pt)[200]); fr((1.4, -2.75), (1.4, -3.4))
+    rect((0, -3.4), (2, -4.2), fill: azzurro); content((1, -3.8), [=])
+    fr((1, -4.2), (1, -5)); content((1, -5.3), $z$)
+    circle((1, -4.6), radius: 0.05, fill: black); line((1, -4.6), (3.2, -4.6), (3.2, -1.8), (2.16, -1.8)); circle((2.08, -1.8), radius: 0.08)
+    content((2.65, -1.55), text(8pt)[WE])
+  }), [Le porte dopo 200 ingressi]),
+  [
+    - *Stato*: quante persone sono entrate. Per contare fino a $k$ il registro ha $ceil(log_2 k)$ bit; per $k = 200$, siccome $2^7 = 128 < 200 <= 256 = 2^8$, ne servono 8.
+    - *Uscita*: un comparatore fra il registro e la costante 200, cioè fili fissi a 11001000. Dà 1 quando il registro arriva a 200, e le porte si chiudono.
+    - *Prossimo stato*: si potrebbe usare un MUX comandato da $x$ fra registro + 1 e registro + 0. Più semplice: un sommatore che fa registro + $x$. Con $x = 1$ aggiunge 1, con $x = 0$ lascia il valore com'è.
+  ],
+))
+
+Resta un problema: a porte chiuse $x = 1$ non dovrebbe più arrivare, ma se arriva lo stesso il registro passa a 201, il comparatore torna a 0 e le porte si riaprono. Si blocca il registro: il WE non è più 1 fisso, ma $overline(z)$. Finché $z = 0$ il registro si scrive; quando $z = 1$ resta fermo a 200. Anche questa è una rete di Moore: $x$ entra solo nel sommatore, e $z$ dipende solo dal registro.
