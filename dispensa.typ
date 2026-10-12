@@ -1011,6 +1011,16 @@ Ogni formula è un OR di quattro prodotti, e ogni prodotto è un AND di tre vari
 
 Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*: $n dot 2 Delta t = 2 n Delta t$. Con 2 bit sono $4 Delta t$. Se l'ultimo riporto vale 1, la somma di due numeri senza segno non sta in $n$ bit.
 
+#video("09", "04:50", "15:48")Il sommatore a $n$ bit è fatto *componendo* $n$ FA, e costa $2 n Delta t$. Come per il MUX a quattro, ci si può chiedere quanto costerebbe progettarlo *da zero* coi cinque passi: una sola tabella di verità con tutti i bit di $x$ e di $y$ come ingressi, e da lì la somma di prodotti. La tabella è troppo grande per scriverla, ma il tempo si stima contando i livelli. Per due numeri di $n$ bit:
+
+- gli ingressi sono $2 n$, quindi le righe sono $2^(2 n)$;
+- ogni prodotto contiene tutte le $2 n$ variabili, quindi ogni AND ha $2 n$ ingressi: $ceil(log_8 2 n)$ livelli;
+- ogni 1 di una colonna d'uscita è un prodotto che entra nell'OR. Gli 1 sono al massimo $2^(2 n) - 1$ (con tutti 1 l'uscita varrebbe sempre 1 e non servirebbe una rete), quindi l'OR ha circa $2^(2 n)$ ingressi: $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$.
+
+#video("08", "19:01", "24:10")Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
+
+#nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
+
 #video("08", "29:42", "35:18")Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
@@ -1044,16 +1054,6 @@ figura(canvas(length: 0.8cm, {
   Il MUX a $n$ bit è fatto di $n$ MUX a un bit con lo stesso controllo: lavorano tutti insieme, quindi costa $2 Delta t$ come uno solo.
 ],
 ))
-
-#video("09", "04:50", "15:48")E progettando il sommatore da zero? La tabella non si scrive, ma il tempo si può stimare. Per due numeri di $n$ bit:
-
-- gli ingressi sono $2 n$, quindi le righe sono $2^(2 n)$;
-- una colonna d'uscita ha al massimo $2^(2 n) - 1$ uni (con tutti 1 sarebbe la costante 1), quindi l'OR ha circa $2^(2 n)$ ingressi: servono $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$;
-- ogni AND ha $2 n$ ingressi: $ceil(log_8 2 n)$ livelli.
-
-#video("08", "19:01", "24:10")Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
-
-#nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
 #video("08", "24:41", "29:35")Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
 
