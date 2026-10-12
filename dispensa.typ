@@ -743,6 +743,34 @@ Somiglia davvero ad aritmetica: su 0 e 1, AND è il prodotto. OR è la somma, tr
   [elemento assorbente], [$x "AND" 0 equiv 0$ #h(2em) $x "OR" 1 equiv 1$],
 ))
 
+Servono davvero tre tipi di porte? No: ne basta uno solo, come avere un unico mattoncino Lego al posto di tre, che si progetta una volta e poi si collega. Questo mattoncino è la *NAND*: un AND con l'uscita negata (il pallino in fondo, come nel NOT).
+
+#let nand(a, b) = 1 - a * b
+#align(center, grid(columns: 2, gutter: 3em, align: horizon,
+  align(center)[#canvas(length: 0.8cm, { import draw: *; line((-0.5, 0.25), (0, 0.25)); line((-0.5, -0.25), (0, -0.25)); porta-nand((0, 0)); line((1.06, 0), (1.5, 0)) }) \ #tvb(($x$, $y$), ([NAND], b => nand(..b)))],
+  align(left)[
+    - *NOT*: $"NAND"(x, x)$, perché $x "AND" x = x$ e poi viene negato.
+    - *AND*: una NAND seguita da un NOT, che toglie la negazione.
+    - *OR*: per la legge di *De Morgan* $x + y = overline(overline(x) dot overline(y))$, cioè nego i due ingressi e li mando in una NAND.
+  ],
+))
+
+#let filo(x) = { import draw: *; line((x, 0.15), (x + 0.5, 0.15)); line((x, -0.15), (x + 0.5, -0.15)) }
+#block(breakable: false, align(center, grid(columns: 3, gutter: 3em, align: center + bottom,
+  [#canvas(length: 0.8cm, { import draw: *
+    line((-0.8, 0), (-0.3, 0)); nand-not((0, 0)); line((0.76, 0), (1.3, 0)) }) \ #text(9pt)[NOT: 1 NAND]],
+  [#canvas(length: 0.8cm, { import draw: *
+    filo(-0.5); porta-nand((0, 0), h: 0.6); line((0.76, 0), (1.2, 0)); nand-not((1.5, 0)); line((2.26, 0), (2.8, 0)) }) \ #text(9pt)[AND: 2 NAND]],
+  [#canvas(length: 0.8cm, { import draw: *
+    for y in (0.5, -0.5) {
+      line((-0.8, y), (-0.3, y)); nand-not((0, y))
+      line((0.76, y), (1.2, y), (1.2, y * 0.3), (1.6, y * 0.3))
+    }
+    porta-nand((1.6, 0), h: 0.6); line((2.36, 0), (2.9, 0)) }) \ #text(9pt)[OR: 3 NAND]],
+)))
+
+Il prezzo: si risparmia lavoro di progettazione, ma non spazio sul chip, perché per ogni AND o OR servono più NAND.
+
 Per costruire una rete da zero si seguono cinque passi, il *procedimento standard*:
 
 #align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
@@ -785,34 +813,6 @@ figura(rete-sp(($x$, $y$, $c$), ((0, 1, 1), (1, 0, 0), (1, 1, 0), (1, 1, 1))), [
 align(left)[Nei disegni il MUX si abbrevia con un trapezio: in alto i due ingressi, ognuno col valore di $c$ che lo sceglie; a sinistra il controllo; in basso l'uscita.
   #align(center, mux)],
 ))
-
-Il MUX, come ogni rete fatta col procedimento standard, è costruito con tre tipi di porte: AND, OR e NOT. Viene da chiedersi se ne basti uno solo, come avere un unico mattoncino Lego al posto di tre: si progetta un pezzo solo e poi lo si collega. Il mattoncino esiste, è la *NAND*: un AND con l'uscita negata (il pallino in fondo, come nel NOT).
-
-#let nand(a, b) = 1 - a * b
-#align(center, grid(columns: 2, gutter: 3em, align: horizon,
-  align(center)[#canvas(length: 0.8cm, { import draw: *; line((-0.5, 0.25), (0, 0.25)); line((-0.5, -0.25), (0, -0.25)); porta-nand((0, 0)); line((1.06, 0), (1.5, 0)) }) \ #tvb(($x$, $y$), ([NAND], b => nand(..b)))],
-  align(left)[
-    - *NOT*: $"NAND"(x, x)$, perché $x "AND" x = x$ e poi viene negato.
-    - *AND*: una NAND seguita da un NOT, che toglie la negazione.
-    - *OR*: per la legge di *De Morgan* $x + y = overline(overline(x) dot overline(y))$, cioè nego i due ingressi e li mando in una NAND.
-  ],
-))
-
-#let filo(x) = { import draw: *; line((x, 0.15), (x + 0.5, 0.15)); line((x, -0.15), (x + 0.5, -0.15)) }
-#align(center, grid(columns: 3, gutter: 3em, align: center + bottom,
-  [#canvas(length: 0.8cm, { import draw: *
-    line((-0.8, 0), (-0.3, 0)); nand-not((0, 0)); line((0.76, 0), (1.3, 0)) }) \ #text(9pt)[NOT: 1 NAND]],
-  [#canvas(length: 0.8cm, { import draw: *
-    filo(-0.5); porta-nand((0, 0), h: 0.6); line((0.76, 0), (1.2, 0)); nand-not((1.5, 0)); line((2.26, 0), (2.8, 0)) }) \ #text(9pt)[AND: 2 NAND]],
-  [#canvas(length: 0.8cm, { import draw: *
-    for y in (0.5, -0.5) {
-      line((-0.8, y), (-0.3, y)); nand-not((0, y))
-      line((0.76, y), (1.2, y), (1.2, y * 0.3), (1.6, y * 0.3))
-    }
-    porta-nand((1.6, 0), h: 0.6); line((2.36, 0), (2.9, 0)) }) \ #text(9pt)[OR: 3 NAND]],
-))
-
-Il prezzo: si risparmia lavoro di progettazione, ma non spazio sul chip, perché per ogni AND o OR servono più NAND.
 
 == Tempo di stabilizzazione
 
