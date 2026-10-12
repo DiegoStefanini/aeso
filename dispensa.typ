@@ -952,9 +952,9 @@ $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overlin
 
 == Componenti
 
-Il MUX a quattro si è costruito con MUX a due già pronti, senza ridisegnarne le porte. Per questo le reti che servono spesso si progettano una volta sola e poi si usano come *componenti*: blocchi col loro nome, da collegare fra loro.
+Il MUX a quattro è venuto fuori collegando MUX a due già pronti, senza ridisegnarne le porte. È l'idea dei *componenti*: le reti che servono spesso si progettano una volta sola, si disegnano come un blocco col loro nome (come il trapezio del MUX) e poi si collegano fra loro. Oltre al MUX ne servono altri quattro: sommatore, demultiplexer, comparatore e codificatore.
 
-Il primo componente serve a sommare. Nella somma in colonna (esempio qui sotto) ogni colonna fa la stessa cosa: somma i due bit $x$ e $y$ e il riporto $r$ arrivato da destra, scrive un bit del risultato e passa un riporto alla colonna a sinistra. La rete che fa una colonna è il *full adder* (FA).
+Il *sommatore* fa le somme binarie viste nel capitolo 1. Per costruirlo si guarda la somma in colonna (esempio qui sotto): ogni colonna fa la stessa cosa, cioè somma i due bit $x$ e $y$ e il riporto $r$ arrivato da destra, scrive un bit del risultato e passa un riporto alla colonna a sinistra. Basta quindi una rete che fa una colonna, il *full adder* (FA), ripetuta per ogni colonna.
 
 #let ris(b) = calc.rem(b.sum(), 2)
 #let rip(b) = if b.sum() >= 2 { 1 } else { 0 }
@@ -1030,7 +1030,7 @@ Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
-Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
+Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
 
 #block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
   canvas(length: 0.8cm, {
@@ -1045,7 +1045,7 @@ Il *demultiplexer* è il contrario del MUX: un ingresso $x$ e più uscite. Il co
    Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
 ))
 
-Il *comparatore* dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
+Il terzo componente, il *comparatore*, dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($x$, $y$), ($z$, b => if b.at(0) == b.at(1) { 1 } else { 0 })),
@@ -1065,7 +1065,7 @@ Il *comparatore* dice se due numeri di $n$ bit sono uguali: uscita 1 se sono ugu
   }), [Comparatore a $n$ bit: $(2 + ceil(log_8 n)) Delta t$]),
 )))
 
-Il *codificatore* ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ uscite che dicono in che posizione sta quell'1 (di solito $2^k$ ingressi e $k$ uscite). Le altre combinazioni di ingressi non sono ammesse, quindi non compaiono nella tabella.
+L'ultimo componente, il *codificatore*, ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ uscite che dicono in che posizione sta quell'1 (di solito $2^k$ ingressi e $k$ uscite). Le altre combinazioni di ingressi non sono ammesse, quindi non compaiono nella tabella.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   table(columns: 6, align: center, inset: 5pt,
