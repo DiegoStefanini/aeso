@@ -1032,7 +1032,7 @@ Per l'ultima colonna: $log_8 a = (log_2 a) / (log_2 8) = (log_2 a) / 3$. Da zero
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
-#video("08", "29:42", "35:18")Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
+#video("08", "29:42", "35:18")Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Il bit di controllo *op* fa due cose insieme: comanda il MUX, che con op = 1 fa passare $overline(y)$, ed entra nel sommatore come *riporto iniziale*, cioè il riporto del primo FA. Con op = 1 quel riporto vale 1, ed è il $+ 1$.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
 figura(canvas(length: 0.8cm, {
@@ -1047,6 +1047,7 @@ figura(canvas(length: 0.8cm, {
   trap((1.5, 1.6), w: 1.4, h: 0.6)
   fr((2.2, 1), (2.2, 0), stroke: r)
   content((5.6, -0.5), [op]); fr((5.2, -0.5), (3, -0.5))
+  content((3.6, -0.62), anchor: "north", text(6pt)[riporto \ iniziale])
   line((4.2, -0.5), (4.2, 1.3)); circle((4.2, -0.5), radius: 0.05, fill: black); fr((4.2, 1.3), (2.75, 1.3))
   fr((1.5, -1), (1.5, -1.8), stroke: r); content((1.5, -2.1), $z$); bus((1.5, -1.4), $n$)
   fr((0, -0.5), (-0.8, -0.5)); content((-1.2, -0.5), text(9pt)[rip])
