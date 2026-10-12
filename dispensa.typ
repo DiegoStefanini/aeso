@@ -46,8 +46,8 @@
   let url = "https://unipiit.sharepoint.com/sites/AESOa.2026-27/_layouts/15/stream.aspx?id=%2Fsites%2FAESOa.2026-27%2FShared%20Documents%2FGeneral%2FRegistrazioni%2Faeso-" + file + ".mp4&nav=" + b64(nav)
   context {
     let x = here().position().x
-    box(place(dx: 2.2cm - x - 1.75cm, dy: -0.75em, link(url, text(fill: blu, stack(dir: ltr, spacing: 2pt,
-      text(13pt)[▶], align(horizon, text(7pt, font: "DejaVu Sans Mono")[#da \ #a]))))))
+    box(place(dx: 2.2cm - x - 2.05cm, dy: -0.75em, link(url, text(fill: blu, stack(dir: ltr, spacing: 2pt,
+      text(13pt)[▶], align(horizon, text(7pt, font: "DejaVu Sans Mono")[#file · #da \ #h(1.2em)→ #a]))))))
   }
 }
 
@@ -292,7 +292,7 @@
 #v(1cm)
 #outline(depth: 2)
 #v(1fr)
-#text(9pt)[#text(fill: blu)[▶] nel margine: cliccando si apre la registrazione della lezione (serve l'account Unipi) dal minuto scritto in alto; quello sotto dice fin dove ascoltare.]
+#text(9pt)[#text(fill: blu)[▶] nel margine: cliccando si apre la registrazione della lezione (serve l'account Unipi) accanto c'è il numero del video, poi il minuto da cui parte la spiegazione; sotto, fin dove ascoltare.]
 
 = Fondamenti dei sistemi di elaborazione
 
@@ -1016,21 +1016,24 @@ Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*:
 - *AND*: ogni prodotto contiene tutte le variabili, quindi ha tanti ingressi quanti la tabella;
 - *OR*: riceve un prodotto per ogni 1 della colonna d'uscita. Gli 1 sono al massimo le righe meno una (se fossero tutti 1 l'uscita varrebbe sempre 1, e la rete non servirebbe).
 
-#block(breakable: false)[#video("09", "04:50", "15:48")Una porta con più di 8 ingressi si fa ad albero, con $ceil(log_8 "ingressi")$ livelli. I conti:
-
-#align(center, table(columns: 4, align: (left, center, center, center), inset: 6pt,
-  [], [2 bit], [8 bit], [$n$ bit],
-  [ingressi], [5 (con il riporto iniziale)], [16], [$2 n$],
-  [righe], [$2^5 = 32$], [$2^16 = 65536$], [$2^(2 n)$],
-  [livelli di AND], [1 (5 ingressi)], [$ceil(log_8 16) = 2$], [$ceil(log_8 2 n)$],
-  [livelli di OR], [2 (fino a 31 ingressi)], [$ceil(16 / 3) = 6$], [$ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$],
-  [*da zero*], [$bold(3 Delta t)$], [$bold(8 Delta t)$], [],
-  [*con i FA*], [$4 Delta t$], [$16 Delta t$], [$2 n Delta t$],
-))]
-
-Per l'ultima colonna: $log_8 a = (log_2 a) / (log_2 8) = (log_2 a) / 3$. Da zero si va più veloci, ma già con 8 bit la tabella ha 65536 righe: nessuno la scrive, e si usano i FA.
+Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32. Gli AND hanno 5 ingressi: 1 livello. L'OR ne ha fino a 31, più di 8, quindi va fatto ad albero: 2 livelli. In tutto $3 Delta t$, contro i $4 Delta t$ dei due FA in cascata.
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
+
+#video("08", "24:41", "29:35")Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
+
+#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
+  canvas(length: 0.8cm, {
+    import draw: *
+    trap((0, 0), demux: true)
+    content((1, 1), $x$); fr((1, 0.75), (1, 0))
+    content((-1.1, -0.35), $c$); fr((-0.85, -0.35), (0.15, -0.35))
+    for (x, t) in ((0.5, $z_1$), (1.5, $z_0$)) { fr((x, -0.7), (x, -1.3)); content((x, -1.6), t) }
+  }),
+  tvb(($c$, $x$), ($z_1$, b => (1 - b.at(0)) * b.at(1)), ($z_0$, b => b.at(0) * b.at(1))),
+  [$ z_1 = overline(c) x #h(2em) z_0 = c x $
+   Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
+))
 
 #video("08", "29:42", "35:18")Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Il bit di controllo *op* fa due cose insieme: comanda il MUX, che con op = 1 fa passare $overline(y)$, ed entra nel sommatore come *riporto iniziale*, cioè il riporto del primo FA. Con op = 1 quel riporto vale 1, ed è il $+ 1$.
 
@@ -1067,20 +1070,19 @@ figura(canvas(length: 0.8cm, {
 ],
 ))
 
-#video("08", "24:41", "29:35")Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
+#block(breakable: false)[#video("09", "04:50", "15:48")Si torna al sommatore da zero, ora con $n$ bit. La tabella non si scrive più, ma i livelli si contano allo stesso modo, con $ceil(log_8 "ingressi")$ livelli per ogni porta:
 
-#block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
-  canvas(length: 0.8cm, {
-    import draw: *
-    trap((0, 0), demux: true)
-    content((1, 1), $x$); fr((1, 0.75), (1, 0))
-    content((-1.1, -0.35), $c$); fr((-0.85, -0.35), (0.15, -0.35))
-    for (x, t) in ((0.5, $z_1$), (1.5, $z_0$)) { fr((x, -0.7), (x, -1.3)); content((x, -1.6), t) }
-  }),
-  tvb(($c$, $x$), ($z_1$, b => (1 - b.at(0)) * b.at(1)), ($z_0$, b => b.at(0) * b.at(1))),
-  [$ z_1 = overline(c) x #h(2em) z_0 = c x $
-   Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
-))
+#align(center, table(columns: 4, align: (left, center, center, center), inset: 6pt,
+  [], [2 bit], [8 bit], [$n$ bit],
+  [ingressi], [5 (con il riporto iniziale)], [16], [$2 n$],
+  [righe], [$2^5 = 32$], [$2^16 = 65536$], [$2^(2 n)$],
+  [livelli di AND], [1 (5 ingressi)], [$ceil(log_8 16) = 2$], [$ceil(log_8 2 n)$],
+  [livelli di OR], [2 (fino a 31 ingressi)], [$ceil(16 / 3) = 6$], [$ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$],
+  [*da zero*], [$bold(3 Delta t)$], [$bold(8 Delta t)$], [],
+  [*con i FA*], [$4 Delta t$], [$16 Delta t$], [$2 n Delta t$],
+))]
+
+Per l'ultima colonna: $log_8 a = (log_2 a) / (log_2 8) = (log_2 a) / 3$. Da zero si va più veloci, ma già con 8 bit la tabella ha 65536 righe: nessuno la scrive, e si usano i FA.
 
 #video("09", "16:08", "19:59")Il terzo componente, il *comparatore*, dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
 
@@ -1361,7 +1363,35 @@ endprimitive
 
 #nota[Una `primitive` ha *una sola uscita* da 1 bit, e la tabella deve coprire *tutte* le combinazioni, anche quelle con uscita 0. Se mancano, lì l'uscita non vale 0 ma `x` (non definito).]
 
-#video("11", "25:03", "30:05")*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
+#video("11", "14:44", "23:31")Prima di vedere gli altri due modi, questo MUX si può già provare. Si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
+
+```verilog
+module test;
+  reg x, y, c;                 // ingressi: il test ci scrive i valori
+  wire z;                      // uscita: si può solo leggere
+  mux m(z, x, y, c);           // una copia del MUX, di nome m
+  integer i;
+  initial begin                // eseguito all'accensione
+    $dumpfile("test.vcd");     // dove salvare i risultati
+    $dumpvars;                 // salva ogni cambiamento dei segnali
+    for (i = 0; i < 8; i++) begin
+      {x, y, c} = i;           // i in binario: x è il bit più a sinistra
+      #2;                      // aspetta 2 unità di tempo
+    end
+    $finish;                   // fine, altrimenti la simulazione non termina
+  end
+endmodule
+```
+
+Le graffe `{x, y, c}` *mettono insieme* tre fili in un numero da 3 bit: il `for` da 0 a 7 prova così tutte le combinazioni degli ingressi. Con `$monitor(...)` il test stampa anche i valori a ogni cambiamento, e con un `if` può controllare da solo se l'uscita è quella giusta.
+
+#figura(onde(w: 0.65, range(3).map(k => ((($x$, $y$, $c$).at(k)), range(8).map(i => calc.rem(calc.quo(i, calc.pow(2, 2 - k)), 2))))
+  + (($z$, range(8).map(i => if calc.rem(i, 2) == 0 { calc.quo(i, 4) } else { calc.rem(calc.quo(i, 2), 2) })),)),
+  [Quello che mostra gtkwave per il test: i da 0 a 7. Con $c = 0$ l'uscita copia $x$, con $c = 1$ copia $y$])
+
+#video("11", "25:03", "30:05")Gli altri due modi di scrivere il MUX hanno gli stessi parametri, quindi il test di prima li prova senza cambiare niente.
+
+*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
 
 ```verilog
 module mux(output z, input x, input y, input c);
@@ -1386,7 +1416,7 @@ module mux(output z, input x, input y, input c);
 endmodule
 ```
 
-*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e `parameter` dà a N un valore che si può cambiare per ogni copia del modulo.
+*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e `parameter` dà a N un valore che si può cambiare per ogni copia del modulo. Nel test, per esempio, `mux #(1) m(z, x, y, c);` crea una copia con N = 1.
 
 ```verilog
 module mux(output [N-1:0] z, input [N-1:0] x, input [N-1:0] y, input c);
@@ -1397,33 +1427,29 @@ endmodule
 
 Le costanti si scrivono con bit, base e valore: `1'b0` è 0 su 1 bit in binario, `16'd5` è 5 su 16 bit scritto in decimale.
 
-#video("11", "14:44", "23:31")Per provare il modulo si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
+#video("11", "38:19", "48:45")Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su una *FPGA*: un chip con una griglia di milioni di celle, dove ogni cella si può configurare come una piccola funzione (4-5 bit d'ingresso, 1 d'uscita), come registro da 1 bit, o come incrocio che instrada i segnali fra le celle vicine. Il Verilog compilato dice come configurare le celle; la configurazione si scrive sul chip come su una chiavetta, e resta anche a corrente spenta. Collegando interruttori ai piedini si prova il circuito vero. L'FPGA si può riprogrammare: oggi un MUX, domani un full adder.
 
-```verilog
-module test;
-  reg x, y, c;                 // ingressi: il test ci scrive i valori
-  wire z;                      // uscita: si può solo leggere
-  mux m(z, x, y, c);           // per il mux a N bit: mux #(1) m(z, x, y, c);
-  integer i;
-  initial begin                // eseguito all'accensione
-    $dumpfile("test.vcd");     // dove salvare i risultati
-    $dumpvars;                 // salva ogni cambiamento dei segnali
-    for (i = 0; i < 8; i++) begin
-      {x, y, c} = i;           // i in binario: x è il bit più a sinistra
-      #2;                      // aspetta 2 unità di tempo
-    end
-    $finish;                   // fine, altrimenti la simulazione non termina
-  end
-endmodule
-```
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.45cm, {
+    import draw: *
+    for i in range(7) { for j in range(5) {
+      let usata = (i, j) in ((1, 1), (2, 1), (2, 2), (4, 3))
+      rect((i, -j), (i + 0.7, -j - 0.7), fill: if usata { rgb("#fff3c4") } else { azzurro }, stroke: 0.4pt)
+    } }
+    line((1.7, -1.35), (2, -1.35), stroke: 1pt + red); line((2.35, -1.7), (2.35, -2), stroke: 1pt + red)
+    line((2.7, -2.35), (4.35, -2.35), (4.35, -3), stroke: 1pt + red)
+  }), [FPGA: in giallo le celle usate, \ in rosso i segnali fra loro]),
+  figura(align(left, text(9pt, stack(dir: ltr, spacing: 0.4em,
+    box(stroke: 0.6pt, inset: 6pt)[Verilog], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[simulazione \ (iverilog)], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[prova \ su FPGA], align(horizon)[→],
+    box(stroke: 0.6pt, inset: 6pt, fill: rgb("#fff3c4"))[_silicon compiler_ \ → maschere → fonderia],
+  ))), [Il percorso dal Verilog al chip]),
+))
 
-Le graffe `{x, y, c}` *mettono insieme* tre fili in un numero da 3 bit: il `for` da 0 a 7 prova così tutte le combinazioni degli ingressi. Con `$monitor(...)` il test stampa anche i valori a ogni cambiamento, e con un `if` può controllare da solo se l'uscita è quella giusta.
+Quando tutto funziona, un *silicon compiler* prende lo stesso Verilog e produce tutto quello che serve per stampare il chip: le *maschere* da mandare alla fonderia.
 
-#figura(onde(w: 0.65, range(3).map(k => ((($x$, $y$, $c$).at(k)), range(8).map(i => calc.rem(calc.quo(i, calc.pow(2, 2 - k)), 2))))
-  + (($z$, range(8).map(i => if calc.rem(i, 2) == 0 { calc.quo(i, 4) } else { calc.rem(calc.quo(i, 2), 2) })),)),
-  [Quello che mostra gtkwave per il test: i da 0 a 7. Con $c = 0$ l'uscita copia $x$, con $c = 1$ copia $y$])
-
-I moduli si *compongono*: un modulo può contenere copie di altri moduli. Il full adder ha due uscite, quindi non sta in una `primitive`: si scrivono due tabelle, una per il risultato e una per il riporto, e un modulo che le usa tutte e due sugli stessi ingressi.
+#video("11", "48:50", "52:39")I moduli si *compongono*: un modulo può contenere copie di altri moduli. Il full adder ha due uscite, quindi non sta in una `primitive`: si scrivono due tabelle, una per il risultato e una per il riporto, e un modulo che le usa tutte e due sugli stessi ingressi.
 
 ```verilog
 primitive far(output z, input x, input y, input r);   // risultato
@@ -1443,6 +1469,23 @@ endmodule
 ```
 
 Allo stesso modo due `fa`, col riporto del primo portato al secondo da un `wire`, fanno il sommatore a 2 bit; e così via fino a un processore intero, un pezzo alla volta, provando ogni pezzo da solo.
+
+#video("15", "29:40", "36:23")Resta da vedere come funziona una cella dell'FPGA. Ogni cella calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  let regs = ((1.1, "0", "1111110"), (2.9, "1", "0110000"), (4.7, "2", "1101101"), (8.7, "9", "1111011"))
+  line((0, 0), (10, 0), (9.6, -0.7), (0.4, -0.7), close: true, fill: azzurro)
+  for (x, n, v) in regs {
+    content((x, 1.75), text(8pt)[#n])
+    rect((x - 0.75, 1.5), (x + 0.75, 1.05), fill: rgb("#fff3c4")); content((x, 1.27), text(7pt, mono(v)))
+    fr((x, 1.05), (x, 0)); bus((x, 0.5), [7])
+    content((x, -0.22), text(7pt, mono(c2(int(n), 4))))
+  }
+  content((6.7, 1.27), [⋯]); content((6.7, -0.22), text(7pt)[⋯])
+  content((-1.6, -0.35), $x_3 x_2 x_1 x_0$); fr((-0.6, -0.35), (0.25, -0.35)); bus((-0.2, -0.35), [4])
+  fr((5, -0.7), (5, -1.5)); bus((5, -1.1), [7]); content((5, -1.8), text(9pt)[ai segmenti $a, b, c, d, e, f, g$])
+}), [La tabella del display in registri: la cifra sceglie quale riga esce])
 
 #video("15", "38:56", "52:09")La simulazione mostra anche cose che sulla carta sfuggono. Finora il NOT costava 0, ma in realtà un po' di tempo lo prende. Supponiamo allora che *ogni* porta, NOT compreso, risponda dopo un'unità di tempo. In Verilog si scrive `#1` dopo `assign`: ogni volta che cambia un ingresso, l'uscita si aggiorna un'unità di tempo dopo. Con queste porte "lente" si ricostruisce il MUX:
 
@@ -1484,45 +1527,6 @@ Questo disturbo si chiama *alea*: per un attimo l'uscita vale il contrario di qu
 ))
 
 Il prezzo è un AND in più e un ingresso in più nell'OR: con porte da 8 i livelli restano due, con porte da 2 l'OR da tre diventa un albero e il ritardo cresce.
-
-#video("11", "38:19", "47:31")Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su una *FPGA*: un chip con una griglia di milioni di celle, dove ogni cella si può configurare come una piccola funzione (4-5 bit d'ingresso, 1 d'uscita), come registro da 1 bit, o come incrocio che instrada i segnali fra le celle vicine. Il Verilog compilato dice come configurare le celle; la configurazione si scrive sul chip come su una chiavetta, e resta anche a corrente spenta. Collegando interruttori ai piedini si prova il circuito vero. L'FPGA si può riprogrammare: oggi un MUX, domani un full adder.
-
-#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
-  figura(canvas(length: 0.45cm, {
-    import draw: *
-    for i in range(7) { for j in range(5) {
-      let usata = (i, j) in ((1, 1), (2, 1), (2, 2), (4, 3))
-      rect((i, -j), (i + 0.7, -j - 0.7), fill: if usata { rgb("#fff3c4") } else { azzurro }, stroke: 0.4pt)
-    } }
-    line((1.7, -1.35), (2, -1.35), stroke: 1pt + red); line((2.35, -1.7), (2.35, -2), stroke: 1pt + red)
-    line((2.7, -2.35), (4.35, -2.35), (4.35, -3), stroke: 1pt + red)
-  }), [FPGA: in giallo le celle usate, \ in rosso i segnali fra loro]),
-  figura(align(left, text(9pt, stack(dir: ltr, spacing: 0.4em,
-    box(stroke: 0.6pt, inset: 6pt)[Verilog], align(horizon)[→],
-    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[simulazione \ (iverilog)], align(horizon)[→],
-    box(stroke: 0.6pt, inset: 6pt, fill: azzurro)[prova \ su FPGA], align(horizon)[→],
-    box(stroke: 0.6pt, inset: 6pt, fill: rgb("#fff3c4"))[_silicon compiler_ \ → maschere → fonderia],
-  ))), [Il percorso dal Verilog al chip]),
-))
-
-#video("15", "29:40", "36:23")Ogni cella dell'FPGA calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
-
-#figura(canvas(length: 0.8cm, {
-  import draw: *
-  let regs = ((1.1, "0", "1111110"), (2.9, "1", "0110000"), (4.7, "2", "1101101"), (8.7, "9", "1111011"))
-  line((0, 0), (10, 0), (9.6, -0.7), (0.4, -0.7), close: true, fill: azzurro)
-  for (x, n, v) in regs {
-    content((x, 1.75), text(8pt)[#n])
-    rect((x - 0.75, 1.5), (x + 0.75, 1.05), fill: rgb("#fff3c4")); content((x, 1.27), text(7pt, mono(v)))
-    fr((x, 1.05), (x, 0)); bus((x, 0.5), [7])
-    content((x, -0.22), text(7pt, mono(c2(int(n), 4))))
-  }
-  content((6.7, 1.27), [⋯]); content((6.7, -0.22), text(7pt)[⋯])
-  content((-1.6, -0.35), $x_3 x_2 x_1 x_0$); fr((-0.6, -0.35), (0.25, -0.35)); bus((-0.2, -0.35), [4])
-  fr((5, -0.7), (5, -1.5)); bus((5, -1.1), [7]); content((5, -1.8), text(9pt)[ai segmenti $a, b, c, d, e, f, g$])
-}), [La tabella del display in registri: la cifra sceglie quale riga esce])
-
-Quando tutto funziona, un *silicon compiler* prende lo stesso Verilog e produce tutto quello che serve per stampare il chip: le *maschere* da mandare alla fonderia.
 
 == Memoria: latch, flip-flop, registro
 
@@ -1573,18 +1577,6 @@ Per capire perché funziona si segue il segnale. Con $R = 1$, $S = 0$: la NOR in
 
 #figura(onde(righe: (2, 6, 10), (($S$, sr-s), ($R$, sr-r), ($Q$, sr-q), ($overline(Q)$, sr-nq))),
   [All'inizio $Q$ non è definito (grigio). Set, poi tutto a 0: ricorda 1. Reset: ricorda 0. Alla fine $S = R = 1$: $Q$ e $overline(Q)$ valgono tutti e due 0])
-
-#video("14", "04:15", "08:21")In Verilog il latch si scrive con le porte, e le uscite incrociate sono fili; le forme d'onda qui sopra sono quelle che dà gtkwave simulandolo.
-
-```verilog
-module SR(output q, output notq, input s, input r);
-  wire w1, w2, nw1, nw2;
-  or(w1, r, nw2);   not(nw1, w1);     // NOR in alto
-  or(w2, s, nw1);   not(nw2, w2);     // NOR in basso
-  assign q = nw1;
-  assign notq = nw2;
-endmodule
-```
 
 #video("13", "29:05", "40:55")Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Si risolve col secondo passo, il *latch D*: davanti al latch SR si mettono due AND, e due ingressi nuovi, il *clock*, che dice *quando* scrivere (quando vale 1), e $D$, che dice *cosa* scrivere. A $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$: $S$ e $R$ non possono più valere 1 insieme.
 
@@ -1678,6 +1670,18 @@ Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *s
   content((2.05, -0.45), text(8pt)[$t_"reg"$])
   line((2.3, -0.4), (5.8, -0.4), mark: (start: "stealth", end: "stealth")); content((4.05, -0.75), text(8pt)[$Q$ non cambia])
 }), [Dopo il fronte di salita il registro è stabile per tutto il ciclo])
+
+#video("14", "04:15", "08:21")Il latch SR si può anche simulare in Verilog: si scrive con le porte, e le uscite incrociate sono fili. Le forme d'onda del latch SR viste prima sono quelle che dà gtkwave simulandolo.
+
+```verilog
+module SR(output q, output notq, input s, input r);
+  wire w1, w2, nw1, nw2;
+  or(w1, r, nw2);   not(nw1, w1);     // NOR in alto
+  or(w2, s, nw1);   not(nw2, w2);     // NOR in basso
+  assign q = nw1;
+  assign notq = nw2;
+endmodule
+```
 
 == Reti sequenziali
 
