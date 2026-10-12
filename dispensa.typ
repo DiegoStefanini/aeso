@@ -786,7 +786,7 @@ align(left)[Nei disegni il MUX si abbrevia con un trapezio: in alto i due ingres
   #align(center, mux)],
 ))
 
-Le tre porte si possono ottenere tutte da una sola, la *NAND*: un AND con l'uscita negata (il pallino in fondo).
+Il MUX, come ogni rete fatta col procedimento standard, è costruito con tre tipi di porte: AND, OR e NOT. Viene da chiedersi se ne basti uno solo, come avere un unico mattoncino Lego al posto di tre: si progetta un pezzo solo e poi lo si collega. Il mattoncino esiste, è la *NAND*: un AND con l'uscita negata (il pallino in fondo, come nel NOT).
 
 #let nand(a, b) = 1 - a * b
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
@@ -812,7 +812,7 @@ Le tre porte si possono ottenere tutte da una sola, la *NAND*: un AND con l'usci
     porta-nand((1.6, 0), h: 0.6); line((2.36, 0), (2.9, 0)) }) \ #text(9pt)[OR: 3 NAND]],
 ))
 
-Con un solo tipo di porta si risparmia lavoro di progettazione, ma non spazio sul chip: per ogni AND o OR servono più NAND.
+Il prezzo: si risparmia lavoro di progettazione, ma non spazio sul chip, perché per ogni AND o OR servono più NAND.
 
 == Tempo di stabilizzazione
 
