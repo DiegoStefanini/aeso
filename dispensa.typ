@@ -1003,7 +1003,7 @@ Il MUX a quattro è venuto fuori collegando MUX a due già pronti, senza ridiseg
 
 $ "ris" &= #sdp(xyr, ris) \ "rip" &= #sdp(xyr, rip) $
 
-Ogni formula ha quattro termini di tre variabili, tutto sotto 8: un livello di AND e uno di OR, quindi il FA si stabilizza in $2 Delta t$.
+Ogni formula è un OR di quattro prodotti, e ogni prodotto è un AND di tre variabili. Nessuna porta supera gli 8 ingressi (gli AND ne hanno 3, l'OR 4), quindi ognuna costa $Delta t$: il segnale passa per un AND e poi per l'OR, e il FA si stabilizza in $2 Delta t$ (i NOT non costano).
 
 #video("08", "14:41", "17:25")Per sommare numeri di $n$ bit si mettono $n$ FA *in cascata*: il riporto di ognuno entra nel successivo. Da qui in poi i bit si numerano col loro peso: $x_0$ è il meno significativo, $x_(n-1)$ il più significativo.
 
