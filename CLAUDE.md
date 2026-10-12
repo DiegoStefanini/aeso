@@ -9,6 +9,8 @@ Workflow generale: `../CLAUDE.md`.
 
 Dispensa: si scrive normalmente (la pausa dell'11 ott è annullata dal 12 ott). In più Diego usa un progetto tutor su claude.ai, con gli esercizi su carta di cui manda la foto; istruzioni in `tutor.md`. Nel progetto carica man mano i fogli nuovi, le trascrizioni e la dispensa aggiornata. Se Diego cambia come vuole il tutor, si aggiorna `tutor.md` e lui lo reincolla nel progetto.
 
+Video delle lezioni: su Stream, cartella `General/Registrazioni/` del team, file `aeso-XX.mp4` con gli stessi numeri dei fogli del prof (la trascrizione dice in quale file sta ogni minuto). Nella dispensa `#video("09", "24:21", "29:54")` mette nel margine un ▶ che apre il video a quel minuto e dice fin dove ascoltare: aggiungilo a ogni concetto importante delle lezioni nuove.
+
 Libro di testo: Harris & Harris, *Sistemi digitali e architettura dei calcolatori*, in `slide/libro-harris.pdf` (pagina del libro + 9 = pagina del PDF). Il prof spiega molto da lì: per ogni lezione leggi anche il paragrafo corrispondente e usalo per spiegare meglio (termini, figure), senza aggiungere argomenti non fatti in aula. Cap. 2 reti combinatorie, cap. 3 latch/flip-flop/macchine a stati, cap. 4 HDL (ma il prof usa Verilog 2003, non il SystemVerilog del libro: per la sintassi vale `slide/Verilog.pdf`).
 
 ## Mappa materiale ↔ lezione

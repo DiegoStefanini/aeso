@@ -28,6 +28,29 @@
   inset: 10pt, width: 100%,
 )[*Da sapere — #titolo* #h(0.3em) #text(8pt, fill: verde)[(aggiunto, non spiegato in aula)] \ #body]
 
+// ▶ nel margine sinistro: link al video della lezione su Stream, da `da` ad `a` (mm:ss)
+#let b64(s) = {
+  let abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+  let b = array(bytes(s))
+  let out = ""
+  for i in range(0, b.len(), step: 3) {
+    let g = b.slice(i, calc.min(i + 3, b.len()))
+    let n = g.at(0) * 65536 + g.at(1, default: 0) * 256 + g.at(2, default: 0)
+    for k in range(g.len() + 1) { out += abc.at(calc.rem(calc.quo(n, calc.pow(64, 3 - k)), 64)) }
+  }
+  out
+}
+#let video(file, da, a) = {
+  let (m, s) = da.split(":").map(int)
+  let nav = "{\"referralInfo\":{\"referralApp\":\"StreamWebApp\",\"referralView\":\"ShareDialog-Link\",\"referralAppPlatform\":\"Web\",\"referralMode\":\"view\"},\"playbackOptions\":{\"startTimeInSeconds\":" + str(m * 60 + s) + "}}"
+  let url = "https://unipiit.sharepoint.com/sites/AESOa.2026-27/_layouts/15/stream.aspx?id=%2Fsites%2FAESOa.2026-27%2FShared%20Documents%2FGeneral%2FRegistrazioni%2Faeso-" + file + ".mp4&nav=" + b64(nav)
+  context {
+    let x = here().position().x
+    box(place(dx: 2.2cm - x - 1.75cm, dy: -0.75em, link(url, text(fill: blu, stack(dir: ltr, spacing: 2pt,
+      text(13pt)[▶], align(horizon, text(7pt, font: "DejaVu Sans Mono")[#da \ #a]))))))
+  }
+}
+
 // spazi non separabili: Typst taglia gli spazi in coda e i riporti si spostano
 #let mono(s) = text(font: "DejaVu Sans Mono", if type(s) == str { s.replace(" ", "\u{a0}") } else { s })
 // conto in colonna: righe allineate a destra, riga sopra il risultato
@@ -268,6 +291,8 @@
 ]
 #v(1cm)
 #outline(depth: 2)
+#v(1fr)
+#text(9pt)[#text(fill: blu)[▶] nel margine: cliccando si apre la registrazione della lezione (serve l'account Unipi) dal minuto scritto in alto; quello sotto dice fin dove ascoltare.]
 
 = Fondamenti dei sistemi di elaborazione
 
@@ -743,7 +768,7 @@ Somiglia davvero ad aritmetica: su 0 e 1, AND è il prodotto. OR è la somma, tr
   [elemento assorbente], [$x "AND" 0 equiv 0$ #h(2em) $x "OR" 1 equiv 1$],
 ))
 
-Servono davvero tre tipi di porte? No: ne basta uno solo, come avere un unico mattoncino Lego al posto di tre, che si progetta una volta e poi si collega. Questo mattoncino è la *NAND*: un AND con l'uscita negata (il pallino in fondo, come nel NOT).
+#video("09", "24:21", "29:54")Servono davvero tre tipi di porte? No: ne basta uno solo, come avere un unico mattoncino Lego al posto di tre, che si progetta una volta e poi si collega. Questo mattoncino è la *NAND*: un AND con l'uscita negata (il pallino in fondo, come nel NOT).
 
 #let nand(a, b) = 1 - a * b
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
@@ -816,7 +841,7 @@ align(left)[Nei disegni il MUX si abbrevia con un trapezio: in alto i due ingres
 
 == Tempo di stabilizzazione
 
-Una porta non risponde subito. Da quando gli ingressi hanno il loro valore (istante $t_0$) a quando l'uscita è quella giusta ($t_1$) passa del tempo, e nel frattempo l'uscita può valere qualunque cosa. È il *tempo di stabilizzazione* (o ritardo) della rete.
+#video("07", "01:15", "06:41")Una porta non risponde subito. Da quando gli ingressi hanno il loro valore (istante $t_0$) a quando l'uscita è quella giusta ($t_1$) passa del tempo, e nel frattempo l'uscita può valere qualunque cosa. È il *tempo di stabilizzazione* (o ritardo) della rete.
 
 #figura(canvas(length: 0.8cm, {
   import draw: *
@@ -836,7 +861,7 @@ Una porta non risponde subito. Da quando gli ingressi hanno il loro valore (ista
   content(((t0 + t1) / 2, -3.4), text(9pt)[tempo di stabilizzazione])
 }), [Il MUX con $c = 1$ fa passare $y = 0$. In grigio i tratti dove il valore non è ancora certo: \ gli ingressi sono pronti da $t_0$, ma $z$ è affidabile solo da $t_1$ in poi])
 
-Il ritardo di una porta dipende da quanti ingressi ha: resta quasi uguale fino a una certa soglia, poi cresce in fretta (grafico a sinistra). Nel corso si usa questa convenzione: fino a 8 ingressi, una porta AND o OR ha sempre lo stesso ritardo, che si chiama $Delta t$ ("delta t": la lettera greca $Delta$ indica un intervallo, qui di tempo). I tempi delle reti si contano in $Delta t$: $2 Delta t$ vuol dire due porte una dopo l'altra.
+#video("07", "06:41", "17:28")Il ritardo di una porta dipende da quanti ingressi ha: resta quasi uguale fino a una certa soglia, poi cresce in fretta (grafico a sinistra). Nel corso si usa questa convenzione: fino a 8 ingressi, una porta AND o OR ha sempre lo stesso ritardo, che si chiama $Delta t$ ("delta t": la lettera greca $Delta$ indica un intervallo, qui di tempo). I tempi delle reti si contano in $Delta t$: $2 Delta t$ vuol dire due porte una dopo l'altra.
 
 #align(center, grid(columns: 2, gutter: 3em, align: horizon,
 canvas(length: 0.7cm, {
@@ -901,7 +926,7 @@ In generale, una porta da $n$ ingressi fatta con porte da $k$ ingressi richiede 
 
 Il tempo di stabilizzazione di una rete si conta sui *livelli* di AND e OR che il segnale attraversa: le porte dello stesso livello lavorano insieme e costano un solo $Delta t$, i livelli uno dopo l'altro si sommano. Il MUX ha un livello di AND e uno di OR: $2 Delta t$. Vale per ogni somma di prodotti, finché termini e variabili non sono più di 8.
 
-Una rete si può costruire in due modi: da zero con i cinque passi, oppure *componendo* reti già fatte. Esempio: un MUX che sceglie fra *quattro* ingressi con due bit di controllo $c_0 c_1$ (qui $c_0$ è quello più a sinistra). Il simbolo è quello del MUX a due, con quattro ingressi: sopra ognuno c'è il valore di $c_0 c_1$ che lo sceglie (00 sceglie $x_0$, 11 sceglie $x_3$). La barretta col 2 vuol dire che su quel filo passano 2 bit, $c_0$ e $c_1$.
+#video("07", "17:48", "37:59")Una rete si può costruire in due modi: da zero con i cinque passi, oppure *componendo* reti già fatte. Esempio: un MUX che sceglie fra *quattro* ingressi con due bit di controllo $c_0 c_1$ (qui $c_0$ è quello più a sinistra). Il simbolo è quello del MUX a due, con quattro ingressi: sopra ognuno c'è il valore di $c_0 c_1$ che lo sceglie (00 sceglie $x_0$, 11 sceglie $x_3$). La barretta col 2 vuol dire che su quel filo passano 2 bit, $c_0$ e $c_1$.
 
 #let tab-mux4 = {
   let righe = range(4).map(c => (0, 1).map(v => (
@@ -934,7 +959,7 @@ $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overlin
 ))
 
 #block(breakable: false, grid(columns: (1fr, auto), gutter: 2em, align: horizon,
-  [*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie ($x_0$ o $x_1$, $x_2$ o $x_3$), il più significativo $c_0$ sceglie quale coppia esce. Non serve la tabella, ma il segnale attraversa due MUX di fila: i due in alto lavorano insieme ($2 Delta t$), quello in basso deve aspettarli ($+ 2 Delta t$).],
+  [#video("07", "38:09", "49:14")*Componendo.* Scegliere fra quattro vuol dire scegliere prima dentro ogni coppia, poi fra le due coppie. Bastano tre MUX a due ingressi: il bit meno significativo $c_1$ sceglie dentro le coppie ($x_0$ o $x_1$, $x_2$ o $x_3$), il più significativo $c_0$ sceglie quale coppia esce. Non serve la tabella, ma il segnale attraversa due MUX di fila: i due in alto lavorano insieme ($2 Delta t$), quello in basso deve aspettarli ($+ 2 Delta t$).],
   figura(canvas(length: 0.8cm, {
     import draw: *
     trap((0, 0)); trap((3.6, 0)); trap((1.8, -2))
@@ -954,7 +979,7 @@ $ z = overline(c_0) thin overline(c_1) x_0 + overline(c_0) c_1 x_1 + c_0 overlin
 
 Il MUX a quattro è venuto fuori collegando MUX a due già pronti, senza ridisegnarne le porte. È l'idea dei *componenti*: le reti che servono spesso si progettano una volta sola, si disegnano come un blocco col loro nome (come il trapezio del MUX) e poi si collegano fra loro. Oltre al MUX ne servono altri quattro: sommatore, demultiplexer, comparatore e codificatore.
 
-Il *sommatore* fa le somme binarie viste nel capitolo 1. Per costruirlo si guarda la somma in colonna (esempio qui sotto): ogni colonna fa la stessa cosa, cioè somma i due bit $x$ e $y$ e il riporto $r$ arrivato da destra, scrive un bit del risultato e passa un riporto alla colonna a sinistra. Basta quindi una rete che fa una colonna, il *full adder* (FA), ripetuta per ogni colonna.
+#video("08", "00:52", "13:44")Il *sommatore* fa le somme binarie viste nel capitolo 1. Per costruirlo si guarda la somma in colonna (esempio qui sotto): ogni colonna fa la stessa cosa, cioè somma i due bit $x$ e $y$ e il riporto $r$ arrivato da destra, scrive un bit del risultato e passa un riporto alla colonna a sinistra. Basta quindi una rete che fa una colonna, il *full adder* (FA), ripetuta per ogni colonna.
 
 #let ris(b) = calc.rem(b.sum(), 2)
 #let rip(b) = if b.sum() >= 2 { 1 } else { 0 }
@@ -980,13 +1005,13 @@ $ "ris" &= #sdp(xyr, ris) \ "rip" &= #sdp(xyr, rip) $
 
 Ogni formula ha quattro termini di tre variabili, tutto sotto 8: un livello di AND e uno di OR, quindi il FA si stabilizza in $2 Delta t$.
 
-Per sommare numeri di $n$ bit si mettono $n$ FA *in cascata*: il riporto di ognuno entra nel successivo. Da qui in poi i bit si numerano col loro peso: $x_0$ è il meno significativo, $x_(n-1)$ il più significativo.
+#video("08", "14:41", "17:25")Per sommare numeri di $n$ bit si mettono $n$ FA *in cascata*: il riporto di ognuno entra nel successivo. Da qui in poi i bit si numerano col loro peso: $x_0$ è il meno significativo, $x_(n-1)$ il più significativo.
 
 #figura(catena-fa(($n-1$, none, $1$, $0$)), [Sommatore a $n$ bit: ogni FA aspetta il riporto di quello alla sua destra])
 
 Ogni FA deve aspettare il riporto del precedente, quindi i ritardi *si sommano*: $n dot 2 Delta t = 2 n Delta t$. Con 2 bit sono $4 Delta t$. Se l'ultimo riporto vale 1, la somma di due numeri senza segno non sta in $n$ bit.
 
-Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
+#video("08", "29:42", "35:18")Lo stesso sommatore fa anche la sottrazione: $x - y = x + overline(y) + 1$, perché in complemento a 2 il negativo di $y$ è $overline(y) + 1$. Un MUX sceglie fra $y$ e $overline(y)$, e lo stesso bit di controllo entra come riporto iniziale.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
 figura(canvas(length: 0.8cm, {
@@ -1020,17 +1045,17 @@ figura(canvas(length: 0.8cm, {
 ],
 ))
 
-E progettando il sommatore da zero? La tabella non si scrive, ma il tempo si può stimare. Per due numeri di $n$ bit:
+#video("09", "04:50", "15:48")E progettando il sommatore da zero? La tabella non si scrive, ma il tempo si può stimare. Per due numeri di $n$ bit:
 
 - gli ingressi sono $2 n$, quindi le righe sono $2^(2 n)$;
 - una colonna d'uscita ha al massimo $2^(2 n) - 1$ uni (con tutti 1 sarebbe la costante 1), quindi l'OR ha circa $2^(2 n)$ ingressi: servono $ceil(log_8 2^(2 n)) = ceil((2 n) / 3)$ livelli, perché $log_8 a = (log_2 a) / (log_2 8)$;
 - ogni AND ha $2 n$ ingressi: $ceil(log_8 2 n)$ livelli.
 
-Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
+#video("08", "19:01", "24:10")Con 2 bit, contando anche il riporto iniziale, gli ingressi sono 5 e le righe 32: un OR di al massimo 31 termini (2 livelli) e AND da 5 ingressi (1 livello), cioè $3 Delta t$ contro i $4 Delta t$ dei due FA in cascata. Con $n = 8$: $ceil(16 / 3) + ceil(log_8 16) = 6 + 2 = 8 Delta t$, contro i $16 Delta t$ degli otto FA in cascata. Ma la tabella avrebbe $2^16 = 65536$ righe: nessuno la scrive, si usano i FA.
 
 #nota[Se in una colonna gli 1 sono più della metà, conviene scrivere i termini per gli *0* e negare l'uscita, tanto il NOT non costa: i termini sono al massimo la metà delle righe.]
 
-Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
+#video("08", "24:41", "29:35")Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso $x$ e più uscite. Il controllo sceglie su quale uscita mandare $x$; le altre valgono 0. Servirà per scegliere in quale cella di memoria scrivere. Si disegna come un MUX capovolto: sotto ogni uscita c'è il valore di $c$ che la sceglie.
 
 #block(breakable: false, grid(columns: (auto, auto, 1fr), gutter: 2em, align: horizon,
   canvas(length: 0.8cm, {
@@ -1045,7 +1070,7 @@ Il secondo componente, il *demultiplexer*, è il contrario del MUX: un ingresso 
    Ogni uscita ha un solo 1, quindi un solo termine: l'OR non serve. C'è solo il livello di AND: $1 Delta t$.],
 ))
 
-Il terzo componente, il *comparatore*, dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
+#video("09", "16:08", "19:59")Il terzo componente, il *comparatore*, dice se due numeri di $n$ bit sono uguali: uscita 1 se sono uguali, 0 altrimenti. Per un bit la formula è $z = overline(x) thin overline(y) + x y$, che non si semplifica: $2 Delta t$. È il negato dello *XOR* (OR esclusivo), che vale 1 quando i due bit sono diversi. Per $n$ bit si confronta ogni coppia $x_i, y_i$ (nel disegno, ogni riquadro $=$ è il comparatore di un bit) e si fa l'AND di tutte le risposte: basta una coppia diversa per dare 0. Avendo una porta già pronta per il confronto di un bit, con ritardo $Delta t$, si guadagnerebbe solo $1 Delta t$: il livello dell'AND finale resta.
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($x$, $y$), ($z$, b => if b.at(0) == b.at(1) { 1 } else { 0 })),
@@ -1065,7 +1090,7 @@ Il terzo componente, il *comparatore*, dice se due numeri di $n$ bit sono uguali
   }), [Comparatore a $n$ bit: $(2 + ceil(log_8 n)) Delta t$]),
 )))
 
-L'ultimo componente, il *codificatore*, ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ uscite che dicono in che posizione sta quell'1 (di solito $2^k$ ingressi e $k$ uscite). Le altre combinazioni di ingressi non sono ammesse, quindi non compaiono nella tabella.
+#video("09", "20:06", "24:14")L'ultimo componente, il *codificatore*, ha $n$ ingressi di cui *esattamente uno* vale 1, e $log_2 n$ uscite che dicono in che posizione sta quell'1 (di solito $2^k$ ingressi e $k$ uscite). Le altre combinazioni di ingressi non sono ammesse, quindi non compaiono nella tabella.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   table(columns: 6, align: center, inset: 5pt,
@@ -1079,7 +1104,7 @@ L'ultimo componente, il *codificatore*, ha $n$ ingressi di cui *esattamente uno*
 
 #nota[All'esame $2 Delta t$ è la risposta giusta solo se i livelli sono due. Conta sempre i livelli: il demultiplexer ne ha uno ($1 Delta t$), due FA in cascata ne hanno quattro ($4 Delta t$).]
 
-Costruire una rete collegando componenti, come il MUX a quattro o il circuito che somma e sottrae, si chiama *approccio strutturale*. Si parte da uno pseudocodice fatto di funzioni e scelte, e ogni pezzo diventa un componente: ogni funzione è una rete, la condizione è una rete con un bit d'uscita, e l'`if` è un MUX comandato da quel bit. Nei disegni $x$ entra in tutti i blocchi; il MUX fa uscire il risultato di F se la condizione vale 1 (qui l'ingresso 1 è a sinistra), quello di G se vale 0.
+#video("09", "31:05", "40:43")Costruire una rete collegando componenti, come il MUX a quattro o il circuito che somma e sottrae, si chiama *approccio strutturale*. Si parte da uno pseudocodice fatto di funzioni e scelte, e ogni pezzo diventa un componente: ogni funzione è una rete, la condizione è una rete con un bit d'uscita, e l'`if` è un MUX comandato da quel bit. Nei disegni $x$ entra in tutti i blocchi; il MUX fa uscire il risultato di F se la condizione vale 1 (qui l'ingresso 1 è a sinistra), quello di G se vale 0.
 
 #align(center, grid(columns: 2, gutter: 4em, align: center + bottom,
   [#se-allora([cond], [F], [G]) \ `if (cond) f(x) else g(x)`],
@@ -1094,7 +1119,7 @@ Nell'esempio di destra, con $x$ di $n$ bit, i tre blocchi si fanno con quello ch
 
 == Semplificare le formule
 
-Fra la somma di prodotti e la rete si può *semplificare* la formula con le regole dell'algebra. Si raccoglie, poi si usano $t + overline(t) = 1$ e $x dot 1 = x$:
+#video("10", "00:29", "07:10")Fra la somma di prodotti e la rete si può *semplificare* la formula con le regole dell'algebra. Si raccoglie, poi si usano $t + overline(t) = 1$ e $x dot 1 = x$:
 
 $ z = x y t + x y overline(t) = x y (t + overline(t)) = x y $
 
@@ -1108,7 +1133,7 @@ Semplificare quindi non sempre fa guadagnare tempo, ma fa risparmiare porte: men
 
 $ "rip" = y r + x r + x y $
 
-Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*. Nell'angolo in alto a sinistra, sopra la diagonale ci sono le variabili delle colonne, sotto quelle delle righe; ogni cella è il valore dell'uscita per quella combinazione (gli 0 in grigio).
+#video("10", "07:13", "36:00")Per vedere cosa raccogliere si usano le *mappe di Karnaugh*: sono la tabella di verità ridisegnata come griglia, con alcune variabili sulle colonne e le altre sulle righe. Le combinazioni sono scritte nell'ordine 00, 01, 11, 10, così fra due celle vicine cambia *un solo bit*. Nell'angolo in alto a sinistra, sopra la diagonale ci sono le variabili delle colonne, sotto quelle delle righe; ogni cella è il valore dell'uscita per quella combinazione (gli 0 in grigio).
 
 #let ka(c, r) = {
   let ((x, y), (a, b)) = (c, r)
@@ -1155,7 +1180,7 @@ Due gruppi da 8 per ogni uscita: spariscono tre variabili su quattro, e ogni usc
 
 Con 5 variabili servirebbero due mappe 4 × 4 una sopra l'altra, una per ogni valore della quinta variabile. Per questo oltre le 4 variabili le mappe non si usano.
 
-Due esempi mettono insieme tutto. Il primo, su $x$ di 4 bit $x_3 x_2 x_1 x_0$:
+#video("12", "05:44", "19:21")Due esempi mettono insieme tutto. Il primo, su $x$ di 4 bit $x_3 x_2 x_1 x_0$:
 
 ```c
 if (x è pari)  { if (x è divisibile per 4) z = 1; else z = 0; }
@@ -1202,7 +1227,7 @@ else           z = 1;
    $z = #text(fill: red)[$overline(x_1)$] + #text(fill: blu)[$x_0$]$: più semplice.],
 ))
 
-Il secondo esempio è un *moltiplicatore* di due numeri senza segno da 2 bit: $x_1 x_0 dot y_1 y_0 = z_3 z_2 z_1 z_0$. L'uscita ha 4 bit, perché moltiplicando i bit raddoppiano: $3 dot 3 = 9 = 1001$.
+#video("12", "19:31", "32:14")Il secondo esempio è un *moltiplicatore* di due numeri senza segno da 2 bit: $x_1 x_0 dot y_1 y_0 = z_3 z_2 z_1 z_0$. L'uscita ha 4 bit, perché moltiplicando i bit raddoppiano: $3 dot 3 = 9 = 1001$.
 
 #let molt(b) = (b.at(0) * 2 + b.at(1)) * (b.at(2) * 2 + b.at(3))
 #let zk(k) = b => calc.rem(calc.quo(molt(b), calc.pow(2, k)), 2)
@@ -1225,7 +1250,7 @@ Il secondo esempio è un *moltiplicatore* di due numeri senza segno da 2 bit: $x
   [Per $z_0$ i due termini stanno lontani nella tabella (righe 0101-0111 e 1101-1111), e si vede che si raccolgono solo facendo il conto. Sulla mappa i quattro 1 sono un quadrato: $z_0 = x_0 y_0$ subito. È a questo che servono le mappe.],
 ))
 
-Si può anche fare il contrario: partire da una rete già disegnata, scriverne la formula e chiedersi se si può calcolare la stessa cosa in modo più efficiente. Questa rete ha un AND per ogni termine (il pallino nega l'ingresso) e una OR che li raccoglie:
+#video("15", "00:33", "14:33")Si può anche fare il contrario: partire da una rete già disegnata, scriverne la formula e chiedersi se si può calcolare la stessa cosa in modo più efficiente. Questa rete ha un AND per ogni termine (il pallino nega l'ingresso) e una OR che li raccoglie:
 
 #block(breakable: false, grid(columns: (auto, auto), gutter: 3em, align: horizon,
   figura(rete-sp(($a$, $b$, $c$), ((0, 1, 1), (1, 1, 0), (1, 1, 1))), [La rete da leggere]),
@@ -1240,7 +1265,7 @@ $ z = overline(a) b c + a b overline(c) + a b c = underbrace(overline(a) b c + a
 
 La mappa dà subito $b c + a b$: 2 AND e una OR. Il raccoglimento $b (c + a)$ invece sulla mappa non si vede: lì si cercano solo i gruppi più grandi. Raccogliendo resta una OR e un AND, una porta in meno. I livelli sono sempre due, quindi $2 Delta t$. La rete di partenza ha due livelli solo con porte da 8 ingressi: con porte da 2, l'AND da tre e l'OR da tre diventano due livelli ciascuno, e i livelli sono 4.
 
-Le mappe convengono soprattutto quando gli 1 sono tanti. Ne è un esempio il *display a sette segmenti* di calcolatrici e orologi: ogni cifra si forma accendendo alcuni dei sette segmenti, che per convenzione si chiamano $a$…$g$ ($a$ in alto, poi in senso orario, $g$ al centro; il punto decimale qui non serve). La rete riceve una cifra da 0 a 9 in binario, $x_3 x_2 x_1 x_0$, e dà 1 sui segmenti da accendere e 0 su quelli da lasciare spenti.
+#video("15", "14:41", "29:37")Le mappe convengono soprattutto quando gli 1 sono tanti. Ne è un esempio il *display a sette segmenti* di calcolatrici e orologi: ogni cifra si forma accendendo alcuni dei sette segmenti, che per convenzione si chiamano $a$…$g$ ($a$ in alto, poi in senso orario, $g$ al centro; il punto decimale qui non serve). La rete riceve una cifra da 0 a 9 in binario, $x_3 x_2 x_1 x_0$, e dà 1 sui segmenti da accendere e 0 su quelli da lasciare spenti.
 
 #let seg = ("1111110", "0110000", "1101101", "1111001", "0110011", "1011011", "1011111", "1110000", "1111111", "1111011")
 #let display(acceso, nomi: false) = canvas(length: 0.65cm, {
@@ -1289,7 +1314,7 @@ I gruppi si sovrappongono, ma va bene: un 1 coperto due volte non costa niente, 
 
 == Descrivere le reti in Verilog
 
-Una rete progettata sulla carta si può provare al calcolatore prima di costruirla, perché stamparla sul silicio è lungo e costoso. Si usa un *HDL* (_Hardware Description Language_): un linguaggio di programmazione che invece di un algoritmo descrive come funziona un circuito. I più usati sono VHDL e *Verilog*; nel corso si usa Verilog (versione 2003, non il SystemVerilog del libro), perché ha strumenti gratuiti per ogni sistema operativo:
+#video("11", "00:49", "08:35")Una rete progettata sulla carta si può provare al calcolatore prima di costruirla, perché stamparla sul silicio è lungo e costoso. Si usa un *HDL* (_Hardware Description Language_): un linguaggio di programmazione che invece di un algoritmo descrive come funziona un circuito. I più usati sono VHDL e *Verilog*; nel corso si usa Verilog (versione 2003, non il SystemVerilog del libro), perché ha strumenti gratuiti per ogni sistema operativo:
 
 #align(center, text(9pt, stack(dir: ltr, spacing: 0.5em,
   box(stroke: 0.6pt, inset: 7pt)[`mux.v` \ il circuito], align(horizon)[+],
@@ -1308,7 +1333,7 @@ $ gtkwave test.vcd           # mostra i segnali nel tempo
 
 Ogni pezzo di circuito è un *modulo*, che si scrive come una funzione: i parametri sono i fili d'ingresso (`input`) e d'uscita (`output`), di solito prima le uscite. Un nome solo vuol dire un filo da 1 bit. Il MUX si può scrivere in tre modi.
 
-*1. Come tabella di verità*, con una `primitive`. Ogni riga dà i valori degli ingressi nell'ordine dei parametri, poi `:` e l'uscita; `?` è il valore che non conta (il − delle tabelle).
+#video("11", "09:14", "13:52")*1. Come tabella di verità*, con una `primitive`. Ogni riga dà i valori degli ingressi nell'ordine dei parametri, poi `:` e l'uscita; `?` è il valore che non conta (il − delle tabelle).
 
 ```verilog
 primitive mux(output z, input x, input y, input c);
@@ -1324,7 +1349,7 @@ endprimitive
 
 #nota[Una `primitive` ha *una sola uscita* da 1 bit, e la tabella deve coprire *tutte* le combinazioni, anche quelle con uscita 0. Se mancano, lì l'uscita non vale 0 ma `x` (non definito).]
 
-*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
+#video("11", "25:03", "30:05")*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
 
 ```verilog
 module mux(output z, input x, input y, input c);
@@ -1360,7 +1385,7 @@ endmodule
 
 Le costanti si scrivono con bit, base e valore: `1'b0` è 0 su 1 bit in binario, `16'd5` è 5 su 16 bit scritto in decimale.
 
-Per provare il modulo si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
+#video("11", "14:44", "23:31")Per provare il modulo si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
 
 ```verilog
 module test;
@@ -1407,7 +1432,7 @@ endmodule
 
 Allo stesso modo due `fa`, col riporto del primo portato al secondo da un `wire`, fanno il sommatore a 2 bit; e così via fino a un processore intero, un pezzo alla volta, provando ogni pezzo da solo.
 
-La simulazione mostra anche cose che sulla carta sfuggono. Finora il NOT costava 0, ma in realtà un po' di tempo lo prende. Supponiamo allora che *ogni* porta, NOT compreso, risponda dopo un'unità di tempo. In Verilog si scrive `#1` dopo `assign`: ogni volta che cambia un ingresso, l'uscita si aggiorna un'unità di tempo dopo. Con queste porte "lente" si ricostruisce il MUX:
+#video("15", "38:56", "52:09")La simulazione mostra anche cose che sulla carta sfuggono. Finora il NOT costava 0, ma in realtà un po' di tempo lo prende. Supponiamo allora che *ogni* porta, NOT compreso, risponda dopo un'unità di tempo. In Verilog si scrive `#1` dopo `assign`: ogni volta che cambia un ingresso, l'uscita si aggiorna un'unità di tempo dopo. Con queste porte "lente" si ricostruisce il MUX:
 
 ```verilog
 module and_d(output z, input x, input y);
@@ -1448,7 +1473,7 @@ Questo disturbo si chiama *alea*: per un attimo l'uscita vale il contrario di qu
 
 Il prezzo è un AND in più e un ingresso in più nell'OR: con porte da 8 i livelli restano due, con porte da 2 l'OR da tre diventa un albero e il ritardo cresce.
 
-Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su una *FPGA*: un chip con una griglia di milioni di celle, dove ogni cella si può configurare come una piccola funzione (4-5 bit d'ingresso, 1 d'uscita), come registro da 1 bit, o come incrocio che instrada i segnali fra le celle vicine. Il Verilog compilato dice come configurare le celle; la configurazione si scrive sul chip come su una chiavetta, e resta anche a corrente spenta. Collegando interruttori ai piedini si prova il circuito vero. L'FPGA si può riprogrammare: oggi un MUX, domani un full adder.
+#video("11", "38:19", "47:31")Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su una *FPGA*: un chip con una griglia di milioni di celle, dove ogni cella si può configurare come una piccola funzione (4-5 bit d'ingresso, 1 d'uscita), come registro da 1 bit, o come incrocio che instrada i segnali fra le celle vicine. Il Verilog compilato dice come configurare le celle; la configurazione si scrive sul chip come su una chiavetta, e resta anche a corrente spenta. Collegando interruttori ai piedini si prova il circuito vero. L'FPGA si può riprogrammare: oggi un MUX, domani un full adder.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(canvas(length: 0.45cm, {
@@ -1468,7 +1493,7 @@ Dopo la simulazione ci sono altri due passi. Il primo è provare il circuito su 
   ))), [Il percorso dal Verilog al chip]),
 ))
 
-Ogni cella dell'FPGA calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
+#video("15", "29:40", "36:23")Ogni cella dell'FPGA calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
 
 #figura(canvas(length: 0.8cm, {
   import draw: *
@@ -1489,7 +1514,7 @@ Quando tutto funziona, un *silicon compiler* prende lo stesso Verilog e produce 
 
 == Memoria: latch, flip-flop, registro
 
-Finora le reti calcolavano funzioni: stesso ingresso, stessa uscita. Una rete *sequenziale* invece *ricorda*: l'uscita dipende dalla sequenza di ingressi ricevuti. Il mattone è un circuito a cui si può dire "ricordati 1" o "ricordati 0", con due uscite: $Q$, il valore ricordato, e $overline(Q)$, il suo negato. L'obiettivo è il *registro*:
+#video("13", "06:16", "11:11")Finora le reti calcolavano funzioni: stesso ingresso, stessa uscita. Una rete *sequenziale* invece *ricorda*: l'uscita dipende dalla sequenza di ingressi ricevuti. Il mattone è un circuito a cui si può dire "ricordati 1" o "ricordati 0", con due uscite: $Q$, il valore ricordato, e $overline(Q)$, il suo negato. L'obiettivo è il *registro*:
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   canvas(length: 0.8cm, {
@@ -1505,7 +1530,7 @@ Finora le reti calcolavano funzioni: stesso ingresso, stessa uscita. Una rete *s
 
 Ci si arriva in quattro passi, dal più semplice, facendo prima il circuito per *un bit*.
 
-Il primo è il *latch SR* (_Set Reset_): due porte NOR (OR seguito da NOT) con le uscite *incrociate*, cioè l'uscita di ognuna torna indietro come ingresso dell'altra. $S = 1$ vuol dire "ricordati 1", $R = 1$ "ricordati 0".
+#video("13", "12:25", "27:21")Il primo è il *latch SR* (_Set Reset_): due porte NOR (OR seguito da NOT) con le uscite *incrociate*, cioè l'uscita di ognuna torna indietro come ingresso dell'altra. $S = 1$ vuol dire "ricordati 1", $R = 1$ "ricordati 0".
 
 #let sr-s = (0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1)
 #let sr-r = (0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1)
@@ -1537,7 +1562,7 @@ Per capire perché funziona si segue il segnale. Con $R = 1$, $S = 0$: la NOR in
 #figura(onde(righe: (2, 6, 10), (($S$, sr-s), ($R$, sr-r), ($Q$, sr-q), ($overline(Q)$, sr-nq))),
   [All'inizio $Q$ non è definito (grigio). Set, poi tutto a 0: ricorda 1. Reset: ricorda 0. Alla fine $S = R = 1$: $Q$ e $overline(Q)$ valgono tutti e due 0])
 
-In Verilog il latch si scrive con le porte, e le uscite incrociate sono fili; le forme d'onda qui sopra sono quelle che dà gtkwave simulandolo.
+#video("14", "04:15", "08:21")In Verilog il latch si scrive con le porte, e le uscite incrociate sono fili; le forme d'onda qui sopra sono quelle che dà gtkwave simulandolo.
 
 ```verilog
 module SR(output q, output notq, input s, input r);
@@ -1549,7 +1574,7 @@ module SR(output q, output notq, input s, input r);
 endmodule
 ```
 
-Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Si risolve col secondo passo, il *latch D*: davanti al latch SR si mettono due AND, e due ingressi nuovi, il *clock*, che dice *quando* scrivere (quando vale 1), e $D$, che dice *cosa* scrivere. A $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$: $S$ e $R$ non possono più valere 1 insieme.
+#video("13", "29:05", "40:55")Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Si risolve col secondo passo, il *latch D*: davanti al latch SR si mettono due AND, e due ingressi nuovi, il *clock*, che dice *quando* scrivere (quando vale 1), e $D$, che dice *cosa* scrivere. A $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$: $S$ e $R$ non possono più valere 1 insieme.
 
 #let dl-n = 16
 #let dl-c = clock(dl-n)
@@ -1577,7 +1602,7 @@ Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q
 
 Ma anche qui c'è un problema: *mentre il clock è 1* il latch copia $D$ in continuazione (si dice che è *trasparente*). Se $D$ cambia mentre il clock è alto, nello stesso ciclo arrivano un set e un reset, e $Q$ cambia due volte (terzo ciclo: prima un reset, poi un set). Invece in un ciclo di clock si deve scrivere un solo valore. Quindi *$D$ non può cambiare mentre il clock vale 1*.
 
-Il terzo passo toglie anche questo vincolo: il *flip-flop*, fatto di due latch D in fila. Il $Q$ del primo, il *master*, è il $D$ del secondo, lo *slave*. Lo slave riceve il clock, il master il clock *negato*: quando scrive uno, l'altro è *opaco* (non fa passare niente).
+#video("13", "40:56", "49:06")Il terzo passo toglie anche questo vincolo: il *flip-flop*, fatto di due latch D in fila. Il $Q$ del primo, il *master*, è il $D$ del secondo, lo *slave*. Lo slave riceve il clock, il master il clock *negato*: quando scrive uno, l'altro è *opaco* (non fa passare niente).
 
 #block(breakable: false, grid(columns: (auto, auto), gutter: 2.5em, align: horizon,
   figura(canvas(length: 0.8cm, {
@@ -1607,7 +1632,7 @@ Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *s
 #figura(onde(righe: fronti(dl-n), (([clock], dl-c), ($D$, dl-d), ([$Q$ latch D], dl-q), ([$Q$ flip-flop], ff-q))),
   [Stessi ingressi: il latch D segue $D$ per tutto il tempo in cui il clock è alto, il flip-flop prende $D$ solo sul fronte di salita (linee tratteggiate)])
 
-L'ultimo passo è il *write enable*: invece di dare il clock direttamente al flip-flop, gli si dà clock AND WE. Con WE = 0 l'AND dà sempre 0, il flip-flop non vede mai salire il clock e tiene il suo valore. Un *registro da $n$ bit* è una fila di $n$ flip-flop, ognuno col suo bit, con lo stesso clock e lo stesso WE.
+#video("13", "49:11", "51:06")L'ultimo passo è il *write enable*: invece di dare il clock direttamente al flip-flop, gli si dà clock AND WE. Con WE = 0 l'AND dà sempre 0, il flip-flop non vede mai salire il clock e tiene il suo valore. Un *registro da $n$ bit* è una fila di $n$ flip-flop, ognuno col suo bit, con lo stesso clock e lo stesso WE.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(canvas(length: 0.8cm, {
@@ -1644,7 +1669,7 @@ L'ultimo passo è il *write enable*: invece di dare il clock direttamente al fli
 
 == Reti sequenziali
 
-Con i registri una rete può ricordare qualcosa fra un ciclo di clock e l'altro. Ecco un problema dove serve: arriva una sequenza di bit, uno alla volta, e dopo ogni bit si vuole sapere se finora si è visto un numero *pari* di 1 (uscita 1) o dispari (uscita 0). È la *parità* della sequenza. Una rete combinatoria non basta, perché vede solo il bit di adesso. D'altra parte non serve ricordare tutta la sequenza: basta sapere se finora gli 1 sono pari o dispari, e ogni bit nuovo aggiorna questa informazione. Quello che la rete deve ricordare del passato è il suo *stato*: qui gli stati sono due, $S_0$ (pari) e $S_1$ (dispari).
+#video("14", "17:38", "20:05")Con i registri una rete può ricordare qualcosa fra un ciclo di clock e l'altro. Ecco un problema dove serve: arriva una sequenza di bit, uno alla volta, e dopo ogni bit si vuole sapere se finora si è visto un numero *pari* di 1 (uscita 1) o dispari (uscita 0). È la *parità* della sequenza. Una rete combinatoria non basta, perché vede solo il bit di adesso. D'altra parte non serve ricordare tutta la sequenza: basta sapere se finora gli 1 sono pari o dispari, e ogni bit nuovo aggiorna questa informazione. Quello che la rete deve ricordare del passato è il suo *stato*: qui gli stati sono due, $S_0$ (pari) e $S_1$ (dispari).
 
 Gli stati, con le frecce che dicono in che stato si va a seconda dell'ingresso, formano un *automa*. Una *rete sequenziale* è una rete che realizza un automa. In un *automa di Moore* l'uscita dipende *solo dallo stato*, e si scrive dentro lo stato.
 
@@ -1679,7 +1704,7 @@ Gli stati, con le frecce che dicono in che stato si va a seconda dell'ingresso, 
   [ingresso], ..seq.map(b => [#b]), [−],
 ))
 
-L'automa si descrive con due funzioni:
+#video("14", "20:06", "27:19")L'automa si descrive con due funzioni:
 
 - la *funzione di transizione* $S'$ (o $sigma$): dato lo stato e l'ingresso, dà il prossimo stato. Va da stato × ingresso a stato;
 - la *funzione delle uscite* $Z$ (o $omega$): dato lo stato, dà l'uscita.
@@ -1719,7 +1744,7 @@ Manca un posto dove tenere lo stato: è un *registro*. Lo schema di una rete di 
 
 #figura(rete-sp(($S$, $I$), ((0, 1), (1, 0)), uscita: $S'$), [La rete $S'$ della parità; il suo ingresso $S$ è l'uscita del registro])
 
-A ogni ciclo di clock si presenta un bit della sequenza. All'inizio del ciclo il registro ha già il suo valore e l'ingresso $I$ resta fermo per tutto il ciclo: c'è il tempo di calcolare il nuovo stato, che si scrive nel registro al fronte successivo, e l'uscita.
+#video("14", "27:20", "32:35")A ogni ciclo di clock si presenta un bit della sequenza. All'inizio del ciclo il registro ha già il suo valore e l'ingresso $I$ resta fermo per tutto il ciclo: c'è il tempo di calcolare il nuovo stato, che si scrive nel registro al fronte successivo, e l'uscita.
 
 #block(sticky: true)[Il progetto di una rete sequenziale segue cinque passi:]
 
@@ -1737,7 +1762,7 @@ $ tau = max(T_(S'), T_Z) + t_"reg" #h(3em) "parità:" quad tau = max(2 Delta t, 
 
 #nota[Con un clock più corto si scriverebbe nel registro un valore non ancora stabile, oppure il registro cambierebbe mentre l'uscita si sta ancora calcolando, e l'uscita non si stabilizzerebbe mai.]
 
-In un *automa di Mealy* invece l'uscita dipende dallo stato *e dall'ingresso*: le uscite si scrivono sulle frecce, non negli stati. Lo schema è lo stesso, ma l'ingresso entra anche nella rete $Z$:
+#video("14", "32:37", "34:53")In un *automa di Mealy* invece l'uscita dipende dallo stato *e dall'ingresso*: le uscite si scrivono sulle frecce, non negli stati. Lo schema è lo stesso, ma l'ingresso entra anche nella rete $Z$:
 
 #figura(schema-fsm(mealy: true), [Rete di Mealy: in rosso il collegamento in più])
 
@@ -1769,7 +1794,7 @@ In un *automa di Mealy* invece l'uscita dipende dallo stato *e dall'ingresso*: l
   content((x, y + s * 1.45), text(8pt, t))
 }
 
-Per esempio la parità con un automa di Mealy. Gli stati restano due, $S_0$ pari e $S_1$ dispari, ma l'uscita si scrive sulla freccia, dopo l'ingresso: "1/0" vuol dire "arriva un 1, l'uscita è 0". Da $S_0$ un 0 lascia la parità pari: si resta in $S_0$ con uscita 1; un 1 la rende dispari: si va in $S_1$ con uscita 0. Da $S_1$ è lo stesso al contrario.
+#video("16", "01:13", "07:25")Per esempio la parità con un automa di Mealy. Gli stati restano due, $S_0$ pari e $S_1$ dispari, ma l'uscita si scrive sulla freccia, dopo l'ingresso: "1/0" vuol dire "arriva un 1, l'uscita è 0". Da $S_0$ un 0 lascia la parità pari: si resta in $S_0$ con uscita 1; un 1 la rende dispari: si va in $S_1$ con uscita 0. Da $S_1$ è lo stesso al contrario.
 
 #let seq-m = (0, 1, 0, 0, 1, 0, 1)
 #let stati-m = seq-m.fold((0,), (s, b) => s + (calc.rem(s.last() + b, 2),))
@@ -1802,7 +1827,7 @@ Codificando $S_0 = 0$, $S_1 = 1$, una sola tabella dà tutte e due le funzioni, 
 
 Gli automi di Mealy di solito sono più compatti: un automa di Moore per lo stesso problema ha lo stesso numero di stati o qualcuno in più.
 
-Un uso tipico degli automi è *riconoscere una stringa*: arriva un simbolo per ciclo, e l'uscita vale 1 quando gli ultimi simboli formano la stringa cercata. Esempio: riconoscere $a b b a$ sull'alfabeto ${a, b}$, senza sovrapposizioni (l'$a$ finale di un $a b b a$ non conta come inizio del successivo). Ogni stato ricorda quanta parte della stringa si è già vista: $S_0$ niente, $S_1$ "$a$", $S_2$ "$a b$", $S_3$ "$a b b$".
+#video("16", "07:31", "15:00")Un uso tipico degli automi è *riconoscere una stringa*: arriva un simbolo per ciclo, e l'uscita vale 1 quando gli ultimi simboli formano la stringa cercata. Esempio: riconoscere $a b b a$ sull'alfabeto ${a, b}$, senza sovrapposizioni (l'$a$ finale di un $a b b a$ non conta come inizio del successivo). Ogni stato ricorda quanta parte della stringa si è già vista: $S_0$ niente, $S_1$ "$a$", $S_2$ "$a b$", $S_3$ "$a b b$".
 
 #figura(canvas(length: 0.8cm, {
   import draw: *
@@ -1851,7 +1876,7 @@ Per la rete di Mealy si codificano gli stati col loro numero in due bit $s_1 s_0
 
 Una rete sequenziale si può anche costruire direttamente con i componenti già visti, come si è fatto per le reti combinatorie con l'approccio strutturale.
 
-Esempio: uno stanzino con una sola porta, da cui passa una persona alla volta, con posto per due persone. Due ingressi: *in* vale 1 se entra una persona, *out* vale 1 se ne esce una. L'uscita $z$ comanda la lampadina: 1 accesa, 0 spenta. La luce deve restare accesa finché dentro c'è qualcuno. Sulle frecce dell'automa (di Mealy) ci sono i due ingressi *in out*, poi l'uscita; − vuol dire che quel bit non conta.
+#video("16", "15:23", "29:46")Esempio: uno stanzino con una sola porta, da cui passa una persona alla volta, con posto per due persone. Due ingressi: *in* vale 1 se entra una persona, *out* vale 1 se ne esce una. L'uscita $z$ comanda la lampadina: 1 accesa, 0 spenta. La luce deve restare accesa finché dentro c'è qualcuno. Sulle frecce dell'automa (di Mealy) ci sono i due ingressi *in out*, poi l'uscita; − vuol dire che quel bit non conta.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(canvas(length: 0.8cm, {
@@ -1904,7 +1929,7 @@ Funziona perché i casi impossibili non capitano: $-1$ arriva solo se qualcuno e
 
 Che rete è, di Mealy o di Moore? Gli ingressi *in out* arrivano solo alla parte che calcola il prossimo stato; l'OR vede solo il registro. L'uscita dipende solo dallo stato: è una rete di *Moore*.
 
-Ultimo esempio: chiudere le porte di un'aula dopo $k$ ingressi. Ogni volta che entra una persona arriva $x = 1$ (le uscite non si contano). L'uscita $z$ vale 0 con le porte aperte e 1 per chiuderle.
+#video("16", "29:54", "39:12")Ultimo esempio: chiudere le porte di un'aula dopo $k$ ingressi. Ogni volta che entra una persona arriva $x = 1$ (le uscite non si contano). L'uscita $z$ vale 0 con le porte aperte e 1 per chiuderle.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(canvas(length: 0.8cm, {
