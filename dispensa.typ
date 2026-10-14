@@ -6,7 +6,8 @@
 #set par(justify: true)
 #set heading(numbering: "1.1")
 #show heading.where(level: 1): it => { pagebreak(weak: true); it }
-#show raw.where(block: true): block.with(fill: luma(245), inset: 8pt, radius: 4pt, width: 100%, breakable: false)
+// codice lungo spezzabile, altrimenti lascia mezze pagine bianche
+#show raw.where(block: true): it => block(fill: luma(245), inset: 8pt, radius: 4pt, width: 100%, breakable: it.lines.len() > 12, it)
 #show raw.where(block: false): box.with(fill: luma(240), inset: (x: 3pt), outset: (y: 3pt), radius: 2pt)
 #set table(stroke: 0.5pt + luma(180), inset: 6pt)
 #show table.cell.where(y: 0): strong
@@ -47,7 +48,7 @@
   context {
     let x = here().position().x
     box(place(dx: 2.2cm - x - 2.05cm, dy: -0.75em, link(url, text(fill: blu, stack(dir: ltr, spacing: 2pt,
-      text(13pt)[▶], align(horizon, text(7pt, font: "DejaVu Sans Mono")[#file · #da \ #h(1.2em)→ #a]))))))
+      text(13pt)[▶], align(horizon, text(if file.len() > 2 { 6pt } else { 7pt }, font: "DejaVu Sans Mono")[#file · #da \ #h(1.2em)→ #a]))))))
   }
 }
 
@@ -263,10 +264,14 @@
     content((-0.25, y + h / 2), anchor: "east", text(9pt, nome))
     for (i, b) in v.enumerate() {
       let (x0, x1) = (i * w, (i + 1) * w)
-      if b == none { rect((x0, y), (x1, y + h), fill: luma(225), stroke: none) } else {
+      let p = if i > 0 { v.at(i - 1) } else { none }
+      if type(b) == str {
+        // valore a più bit (uno stato): due linee, il nome a ogni cambio
+        line((x0, y), (x1, y), stroke: 1.2pt + blu); line((x0, y + h), (x1, y + h), stroke: 1.2pt + blu)
+        if p != b { line((x0, y), (x0, y + h), stroke: 1.2pt + blu); content((x0 + 0.08, y + h / 2), anchor: "west", text(7pt, b)) }
+      } else if b == none { rect((x0, y), (x1, y + h), fill: luma(225), stroke: none) } else {
         line((x0, y + b * h), (x1, y + b * h), stroke: 1.2pt + blu)
-        let p = if i > 0 { v.at(i - 1) } else { none }
-        if p != none and p != b { line((x0, y), (x0, y + h), stroke: 1.2pt + blu) }
+        if type(p) == int and p != b { line((x0, y), (x0, y + h), stroke: 1.2pt + blu) }
       }
     }
   }
@@ -1888,7 +1893,7 @@ Per la rete di Mealy si codificano gli stati col loro numero in due bit $s_1 s_0
   ],
 ))
 
-== Reti sequenziali coi componenti
+== Reti sequenziali coi componenti e in Verilog
 
 Una rete sequenziale si può anche costruire direttamente con i componenti già visti, come si è fatto per le reti combinatorie con l'approccio strutturale.
 
@@ -1970,3 +1975,295 @@ Che rete è, di Mealy o di Moore? Gli ingressi *in out* arrivano solo alla parte
 ))
 
 Resta un problema: a porte chiuse $x = 1$ non dovrebbe più arrivare, ma se arriva lo stesso il registro passa a 201, il comparatore torna a 0 e le porte si riaprono. Si blocca il registro: il WE non è più 1 fisso, ma $overline(z)$. Finché $z = 0$ il registro si scrive; quando $z = 1$ resta fermo a 200. Anche questa è una rete di Moore: $x$ entra solo nel sommatore, e $z$ dipende solo dal registro.
+
+#video("1718", "09:11", "17:43")Una rete sequenziale si può provare in Verilog come una combinatoria. Il primo modo, *strutturale*, ricopia lo schema di Moore o di Mealy pezzo per pezzo: le reti $S'$ e $Z$ si scrivono come si è già visto, con una `primitive` o con `assign`; il registro è un modulo nuovo; le frecce dello schema diventano fili (`wire`). Per la parità di Moore, con $S_0 = 0$ e $S_1 = 1$, le due reti combinatorie sono le tabelle di $S'$ e di $O$ viste prima:
+
+```verilog
+primitive s1(output z, input s, input x);   // S': prossimo stato
+  table
+  // s x : z
+     0 0 : 0;
+     0 1 : 1;
+     1 0 : 1;
+     1 1 : 0;
+  endtable
+endprimitive
+
+module uscita(output z, input s);           // Z: l'uscita è il NOT dello stato
+  assign z = !s;
+endmodule
+```
+
+#video("1718", "17:45", "24:11")Il registro deve fare quello che fa il registro coi flip-flop: al fronte di salita del clock, se WE = 1, scrive l'ingresso; per tutto il resto del tempo l'uscita è il valore scritto. Ha un parametro N, il numero di bit.
+
+```verilog
+module registro(output [N-1:0] z, input clock, input enable, input [N-1:0] inval);
+  parameter N = 2;
+  reg [N-1:0] stato;            // N flip-flop: qui sta il valore
+  initial
+    begin
+      stato = 0;                // all'accensione vale 0
+    end
+  always @(posedge clock)       // a ogni fronte di salita del clock...
+    begin
+      if (enable)
+        stato <= inval;         // ...se WE = 1 scrive l'ingresso
+    end
+  assign z = stato;             // l'uscita è sempre il contenuto
+endmodule
+```
+
+#block(breakable: false, grid(columns: (1fr, auto), gutter: 2em, align: horizon,
+  [
+    - `reg` è proprio un registro: Verilog lo costruisce con dei flip-flop. Nel test si usava per gli ingressi perché il test ci scrive un valore e lo tiene.
+    - `initial` si esegue una volta sola, quando il modulo si accende.
+    - `always @(...)` esegue il blocco ogni volta che cambia qualcosa nella lista fra parentesi. `posedge clock` vuol dire "quando il clock passa da 0 a 1" (fronte di salita), `negedge clock` "quando passa da 1 a 0" (fronte di discesa).
+    - Quando cambia `stato` cambia anche `z`: subito dopo il fronte l'uscita è il valore appena scritto.
+  ],
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    line((0, 0), (1, 0), (1, 1), (2.2, 1), (2.2, 0), (3.2, 0), stroke: 1.2pt + blu)
+    content((1, 2), text(8pt, fill: red)[posedge]); fr((1, 1.8), (1, 1.1), stroke: red)
+    content((2.2, -0.9), text(8pt, fill: red)[negedge]); fr((2.2, -0.7), (2.2, -0.1), stroke: red)
+    content((-0.5, 0.5), text(9pt)[clock])
+  }), [I due fronti del clock]),
+))
+
+#nota[Nel corso si suppone che registri e memorie, all'accensione, valgano 0. Nei componenti veri serve un segnale apposta; in Verilog lo fa `initial`.]
+
+#video("1718", "24:11", "34:23")Ora i tre pezzi si collegano come nello schema di Moore, dentro un modulo `pari` che ha come parametri solo quello che sta fuori: l'ingresso $x$, il clock e l'uscita $z$. Il WE non c'è, perché in una rete sequenziale il registro si scrive a ogni ciclo: è fisso a 1, la costante `1'b1`. Dentro servono due fili (in rosso nel disegno): `w1` porta il prossimo stato al registro, `w2` porta il contenuto del registro all'uscita *e* di nuovo al prossimo stato. Un filo che arriva in due posti è sempre lo stesso filo. Sotto ogni blocco c'è il nome della sua copia nel codice.
+
+#figura(canvas(length: 0.8cm, {
+    import draw: *
+    let blocco(x0, x1, t, nome, colore: azzurro) = {
+      rect((x0, -0.45), (x1, 0.45), fill: colore); content(((x0 + x1) / 2, 0), text(9pt, t))
+      content(((x0 + x1) / 2, -0.75), text(7pt, nome))
+    }
+    blocco(0, 1.6, `s1`, `prossimostato`); blocco(2.6, 4.6, `registro`, `rstato`, colore: rgb("#fff3c4")); blocco(5.7, 7.3, `uscita`, `funz`)
+    content((-1.2, 0.2), $x$); fr((-0.95, 0.2), (0, 0.2))
+    fr((1.6, 0), (2.6, 0), stroke: red); content((2.1, 0.3), text(8pt, fill: red)[`w1`])
+    fr((4.6, 0), (5.7, 0), stroke: red); content((5.15, 0.3), text(8pt, fill: red)[`w2`])
+    circle((5.15, 0), radius: 0.05, fill: red)
+    line((5.15, 0), (5.15, -1.2), (-0.4, -1.2), (-0.4, -0.2), stroke: red); fr((-0.4, -0.2), (0, -0.2), stroke: red)
+    line((3.6, 1.4), (3.6, 0.45), stroke: (dash: "dashed")); content((3.6, 1.65), text(8pt)[clock])
+    fr((7.3, 0), (8.1, 0)); content((8.35, 0), $z$)
+    rect((-0.7, -1.5), (7.7, 1.2), stroke: verde); content((-0.3, 0.95), text(8pt, fill: verde)[`pari`])
+  }), [La parità di Moore in Verilog])
+
+```verilog
+module pari(output z, input clock, input x);
+  wire w1, w2;
+  s1 prossimostato(w1, w2, x);
+  uscita funz(z, w2);
+  registro #(1) rstato(w2, clock, 1'b1, w1);
+endmodule
+```
+
+Come per il full adder, ogni riga crea una copia di un modulo e la collega, nell'ordine dei parametri: `prossimostato` legge lo stato da `w2` e $x$ e scrive su `w1`; `rstato` è un registro da 1 bit (`#(1)`) che legge `w1` e scrive su `w2`. Per una rete di Mealy l'unica differenza è che anche `uscita` riceve $x$.
+
+#video("1718", "37:20", "38:24")Per provarla si scrive un test come per le reti combinatorie, con in più il clock. Lo genera un `always` senza lista, che si ripete per sempre:
+
+```verilog
+always #1 clock = ~clock;      // ogni unità di tempo si inverte: 0, 1, 0, 1...
+```
+
+#video("1718", "40:31", "46:22")È la stessa idea del MUX a quattro fatto con tre MUX a due: si prendono i pezzi e si collegano coi fili. Lì i pezzi erano tutti reti combinatorie, qui due combinatorie e un registro. In Verilog `c[0]` è il bit meno significativo, quello che sceglie dentro le coppie (nella sezione sui componenti si chiamava $c_1$), e `c[1]` sceglie la coppia.
+
+```verilog
+module mux(output z, input x, input y, input c);
+  assign z = (!c && x) || (c && y);
+endmodule
+
+module mux4(output z, input x0, input x1, input x2, input x3, input [1:0] c);
+  wire f1, f2;
+  mux A(f1, x0, x1, c[0]);     // sceglie dentro la prima coppia
+  mux B(f2, x2, x3, c[0]);     // sceglie dentro la seconda coppia
+  mux C(z, f1, f2, c[1]);      // sceglie quale coppia esce
+endmodule
+```
+
+#video("1718", "46:53", "53:13")Scrivere a mano ogni modulo e ogni filo è lungo. Il secondo modo, *behavioural* (cioè "che descrive il comportamento"), scrive quasi come in C cosa fa la rete, e i componenti li ricava Verilog. Lo schema da descrivere è sempre lo stesso: una formula per $S'$, una per $Z$, e il registro. Tutto in un modulo:
+
+```verilog
+module fsm(output z, input clock, input x);
+  reg stato;                      // il registro di stato
+  reg nuovostato;                 // il prossimo stato, appena calcolato
+  initial
+    begin
+      stato <= 0;
+      nuovostato <= 0;
+    end
+  always @(stato, x)              // ogni volta che cambia lo stato o l'ingresso...
+    begin
+      nuovostato <= ...;          // ...ricalcola S' (la sua formula)
+    end
+  always @(posedge clock)         // al fronte di salita il nuovo stato
+    stato <= nuovostato;          // entra nel registro
+  assign z = ...;                 // la formula di Z
+endmodule
+```
+
+Servono due `reg` perché il prossimo stato si calcola appena cambiano ingresso o stato, ma non deve entrare subito nel registro: solo al fronte di salita del clock. In `initial` basterebbe dare il valore a `stato`; `nuovostato` viene calcolato subito. Con una sola istruzione, come nel secondo `always`, `begin` ed `end` si possono omettere.
+
+Dentro `initial` e `always` si assegna con `=` o con `<=`. Con `=` gli assegnamenti avvengono uno dopo l'altro, come in C: `a = 0; b = a & c;` dà sempre $b = 0$. Con `<=` avvengono *contemporaneamente*, e ognuno usa i valori di prima: `a <= 0; b <= a & c;` mette in $b$ l'AND fra il vecchio $a$ e $c$. Per i registri dello stato si usa `<=`: cambiano tutti insieme, come i flip-flop veri.
+
+#video("1718", "56:20", "57:21")Da un modulo scritto così, Quartus (lo strumento di Intel per le FPGA, più grande di Icarus Verilog) ricava da solo la rete di componenti, e sa anche ridisegnare l'automa da cui si era partiti.
+
+#nota[#video("1718", "57:25", "58:49")*Due modi per una rete sequenziale in Verilog.* *Strutturale*: si prende il disegno della rete e lo si ricopia coi moduli, collegati da fili. *Behavioural*: un modulo con il registro di stato e un registro "ombra" per il nuovo stato; un `always @(stato, ingressi)` ricalcola il nuovo stato, un `always @(posedge clock)` lo copia nello stato, e `assign` calcola le uscite dallo stato e dagli ingressi se la rete è di Mealy, dal solo stato se è di Moore.]
+
+Un esempio completo nei due modi: riconoscere $a b a$ sull'alfabeto ${a, b}$, senza sovrapposizioni. È come $a b b a$, con uno stato in meno: $S_0$ non ha visto niente, $S_1$ ha visto "$a$", $S_2$ ha visto "$a b$".
+
+#let aba = ((1, 0), (1, 2), (0, 0))   // prossimo stato con a e con b
+#let aba-p(b) = if b.at(0) == 1 and b.at(1) == 1 { none } else { aba.at(b.at(0) * 2 + b.at(1)).at(b.at(2)) }
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.8cm, {
+    import draw: *
+    for (k, x) in (0, 3, 6).enumerate() { stato-m((x, 0), $S_#k$, iniziale: k == 0) }
+    anello((0, 0), [$b$/0]); anello((3, 0), [$a$/0])
+    arco((0, 0), (3, 0), [$a$/0]); arco((3, 0), (6, 0), [$b$/0])
+    arco((6, 0), (0, 0), [$b$/0], piega: 1.1); arco((6, 0), (0, 0), [$a$/#strong[1]], piega: 1.9)
+  }), [Riconoscitore di $a b a$ (Mealy)]),
+  [
+    - In $S_1$ un'altra $a$ può essere l'inizio della stringa: si resta in $S_1$.
+    - In $S_2$ una $b$ fa $a b b$: si riparte da capo. Una $a$ completa $a b a$: uscita 1, e si torna in $S_0$, perché quell'$a$ non conta come inizio della prossima.
+  ],
+))
+
+Si codificano gli stati col loro numero ($S_2 = 10$), $a = 0$ e $b = 1$. Lo stato 11 non esiste: le sue righe non contano (−).
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  tvb(($s_1$, $s_0$, $x$),
+    ($s'_1$, b => if aba-p(b) == none [−] else { calc.quo(aba-p(b), 2) }),
+    ($s'_0$, b => if aba-p(b) == none [−] else { calc.rem(aba-p(b), 2) }),
+    ($z$, b => if aba-p(b) == none [−] else if b == (1, 0, 0) { 1 } else { 0 })),
+  [
+    $ z &= s_1 overline(s_0) thin overline(x) \
+      s'_1 &= overline(s_1) s_0 x \
+      s'_0 &= overline(s_1) thin overline(s_0) thin overline(x) + overline(s_1) s_0 overline(x) = overline(s_1) thin overline(x) $
+    In $s'_0$ i due 1 differiscono solo per $s_0$, che quindi non conta: raccogliendo resta $overline(s_1) thin overline(x) (overline(s_0) + s_0) = overline(s_1) thin overline(x)$.
+  ],
+))
+
+Nel modo strutturale ogni formula diventa un `assign`; il filo `toReg` va dal prossimo stato al registro, `fromReg` dal registro alle due reti, tutti e due da 2 bit. È una rete di Mealy, quindi anche `uscite` riceve l'ingresso.
+
+```verilog
+module uscite(output z, input in, input [1:0] s);
+  assign z = (~in) && s[1] && (~s[0]);
+endmodule
+
+module stato(output [1:0] ns, input in, input [1:0] s);
+  assign ns[1] = in && (~s[1]) && s[0];
+  assign ns[0] = (~s[1]) && (~in);         // la forma semplificata
+endmodule
+
+module fsm(output z, input x, input clock);
+  wire [1:0] toReg, fromReg;
+  registro #(2) rst(fromReg, clock, 1'b1, toReg);
+  uscite usc(z, x, fromReg);
+  stato sta(toReg, x, fromReg);
+endmodule
+```
+
+Nel modo behavioural si danno un nome agli stati e ai simboli con #raw("`define") (come `#define` in C; il nome si usa con l'apice rovesciato davanti, #raw("`S1")), e la funzione $S'$ si scrive con un `case` sullo stato, che ricopia le frecce dell'automa:
+
+```verilog
+`define S0 2'b00
+`define S1 2'b01
+`define S2 2'b10
+`define A 1'b0
+`define B 1'b1
+
+module fsm(output z, input x, input clock);
+  reg [1:0] stato;
+  reg [1:0] nuovostato;
+  initial
+    begin
+      stato = `S0;
+    end
+  always @(posedge clock)
+    stato <= nuovostato;
+  always @(stato, x)                         // la funzione S'
+    begin
+      case (stato)
+        `S0: nuovostato <= (x == `A ? `S1 : `S0);
+        `S1: nuovostato <= (x == `B ? `S2 : `S1);
+        `S2: nuovostato <= (x == `B ? `S0 : `S0);   // comunque in S0
+      endcase
+    end
+  assign z = ((stato == `S2 && x == `A) ? 1 : 0);   // la funzione Z
+endmodule
+```
+
+I due moduli hanno gli stessi parametri, quindi lo stesso test li prova tutti e due. Qui il clock si inverte ogni 2 unità di tempo: sale a 2, 6, 10… Gli ingressi cambiano fra un fronte e l'altro, così al fronte sono già stabili.
+
+```verilog
+module test;
+  reg x;                     // un reg per ogni ingresso del modulo da provare
+  reg clock;
+  wire z;                    // un wire per ogni uscita
+  fsm my(z, x, clock);
+  initial
+    begin
+      clock <= 0;
+      x <= 0;
+    end
+  always
+    #2 clock = ~clock;
+  initial
+    begin
+      $dumpfile("test.vcd");
+      $dumpvars;
+      #0 x <= `B;            // la sequenza b a b a a b a
+      #3 x <= `A;
+      #4 x <= `B;
+      #4 x <= `A;
+      #8 x <= `B;
+      #4 x <= `A;
+      #8 $finish;
+    end
+endmodule
+```
+
+#let moore = ((1, 0), (1, 2), (3, 0), (1, 0))   // abA con Moore: S3 = "ho visto aba"
+#let ab-n = 30
+#let ab-x = range(ab-n).map(t => if t < 3 or (t >= 7 and t < 11) or (t >= 19 and t < 23) { 1 } else { 0 })
+#let ab-c = clock(ab-n)
+#let sale(i) = i > 0 and ab-c.at(i) == 1 and ab-c.at(i - 1) == 0
+#let ab-me = sim(ab-n, (i, p) => if i == 0 { 0 } else if sale(i) { aba.at(p).at(ab-x.at(i)) } else { p })
+#let ab-mo = sim(ab-n, (i, p) => if i == 0 { 0 } else if sale(i) { moore.at(p).at(ab-x.at(i)) } else { p })
+
+Con Moore l'uscita sta negli stati, quindi serve uno stato in più, come per $a b b a$: $S_3$, "ho appena visto $a b a$", l'unico con uscita 1. Da $S_2$ una $a$ porta in $S_3$; da $S_3$ una $a$ è l'inizio di una nuova stringa e porta in $S_1$, una $b$ riporta in $S_0$. Il codice strutturale è lo stesso, cambiano le formule: $S_3 = 11$, quindi l'uscita è `assign z = s[1] && s[0];`, e non riceve più l'ingresso.
+
+#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
+  figura(canvas(length: 0.75cm, {
+    import draw: *
+    for (k, x) in (0, 2.6, 5.2, 7.8).enumerate() {
+      circle((x, 0), radius: 0.58, fill: azzurro); line((x - 0.56, -0.05), (x + 0.56, -0.05), stroke: 0.5pt)
+      content((x, 0.24), text(9pt, $S_#k$)); content((x, -0.3), text(9pt, if k == 3 { strong[1] } else [0]))
+      if k == 0 { circle((x, 0), radius: 0.68) }
+    }
+    anello((0, 0), [$b$]); anello((2.6, 0), [$a$])
+    arco((0, 0), (2.6, 0), [$a$]); arco((2.6, 0), (5.2, 0), [$b$]); arco((5.2, 0), (7.8, 0), [$a$])
+    arco((5.2, 0), (0, 0), [$b$], piega: 1.2); arco((7.8, 0), (2.6, 0), [$a$], piega: -1.6); arco((7.8, 0), (0, 0), [$b$], piega: 2.2)
+  }), [Riconoscitore di $a b a$ (Moore)]),
+  tvb(($s_1$, $s_0$, $x$),
+    ($s'_1$, b => calc.quo(moore.at(b.at(0) * 2 + b.at(1)).at(b.at(2)), 2)),
+    ($s'_0$, b => calc.rem(moore.at(b.at(0) * 2 + b.at(1)).at(b.at(2)), 2))),
+))
+
+$ s'_1 = overline(s_1) s_0 x + s_1 overline(s_0) thin overline(x) #h(3em) s'_0 = overline(x) $
+
+Per $s'_0$ gli 1 sono le quattro righe con $x = 0$: con una $a$ si va sempre in uno stato dispari ($S_1$ o $S_3$).
+
+Ecco cosa mostra gtkwave per il test, con la rete di Mealy e con quella di Moore (le linee tratteggiate sono i fronti di salita del clock):
+
+#figura(onde(w: 0.36, righe: fronti(ab-n), (
+  ([clock], ab-c),
+  ([$x$], ab-x),
+  ([stato (Mealy)], ab-me.map(s => "S" + str(s))),
+  ([$z$ (Mealy)], range(ab-n).map(i => if ab-me.at(i) == 2 and ab-x.at(i) == 0 { 1 } else { 0 })),
+  ([stato (Moore)], ab-mo.map(s => "S" + str(s))),
+  ([$z$ (Moore)], ab-mo.map(s => if s == 3 { 1 } else { 0 })),
+)), [La sequenza $b a b a a b a$ ($x = 1$ è $b$): $a b a$ viene riconosciuta due volte])
+
+Con Mealy $z$ sale appena $x$ diventa $a$ mentre si è in $S_2$, a metà ciclo, e scende al fronte successivo. Con Moore $z$ sale solo al fronte che porta in $S_3$, e resta 1 per tutto il ciclo, perché dipende solo dallo stato.
