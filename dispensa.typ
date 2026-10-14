@@ -1421,14 +1421,16 @@ module mux(output z, input x, input y, input c);
 endmodule
 ```
 
-*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e `parameter` dà a N un valore che si può cambiare per ogni copia del modulo. Nel test, per esempio, `mux #(1) m(z, x, y, c);` crea una copia con N = 1.
+*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e il parametro N ha un valore che si può cambiare per ogni copia del modulo. Nel test, per esempio, `mux #(1) m(z, x, y, c);` crea una copia con N = 1.
 
 ```verilog
-module mux(output [N-1:0] z, input [N-1:0] x, input [N-1:0] y, input c);
-  parameter N = 32;
+module mux #(parameter N = 32)
+           (output [N-1:0] z, input [N-1:0] x, input [N-1:0] y, input c);
   assign z = (c == 0 ? x : y);
 endmodule
 ```
+
+#nota[Il prof scrive `parameter N = 32;` dentro il modulo, dopo la testa. Con Icarus 13 così non compila (_Unable to bind parameter_): N è usato nella testa prima di essere dichiarato. Va messo nella testa, con `#(parameter N = 32)` subito dopo il nome.]
 
 Le costanti si scrivono con bit, base e valore: `1'b0` è 0 su 1 bit in binario, `16'd5` è 5 su 16 bit scritto in decimale.
 
@@ -1997,8 +1999,8 @@ endmodule
 #video("1718", "17:45", "24:11")Il registro deve fare quello che fa il registro coi flip-flop: al fronte di salita del clock, se WE = 1, scrive l'ingresso; per tutto il resto del tempo l'uscita è il valore scritto. Ha un parametro N, il numero di bit.
 
 ```verilog
-module registro(output [N-1:0] z, input clock, input enable, input [N-1:0] inval);
-  parameter N = 2;
+module registro #(parameter N = 2)
+                (output [N-1:0] z, input clock, input enable, input [N-1:0] inval);
   reg [N-1:0] stato;            // N flip-flop: qui sta il valore
   initial
     begin
