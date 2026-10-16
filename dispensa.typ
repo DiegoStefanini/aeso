@@ -1580,23 +1580,38 @@ Il prezzo è un AND in più e un ingresso in più nell'OR: con porte da 8 i live
 
 == Memoria: latch, flip-flop, registro
 
-#video("13", "06:16", "11:11")Finora le reti calcolavano funzioni: stesso ingresso, stessa uscita. Una rete *sequenziale* invece *ricorda*: l'uscita dipende dalla sequenza di ingressi ricevuti. Il mattone è un circuito a cui si può dire "ricordati 1" o "ricordati 0", con due uscite: $Q$, il valore ricordato, e $overline(Q)$, il suo negato. L'obiettivo è il *registro*:
+#video("13", "06:16", "11:11")Finora le reti calcolavano *funzioni*: a un ingresso corrisponde sempre la stessa uscita, e la rete non ricorda niente di quello che è successo prima. Ora servono reti che *ricordano*, le *reti sequenziali*: si chiamano così perché la loro uscita dipende dalla sequenza degli ingressi ricevuti, non solo dall'ultimo. Il loro pezzo base è un circuito che ricorda un bit: gli si può dire "ricordati 1" o "ricordati 0", e ha due uscite, $Q$, il bit ricordato, e $overline(Q)$, il suo negato.
 
-#block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
-  canvas(length: 0.8cm, {
+Mettendo insieme questi circuiti si vuole arrivare al *registro*, che ricorda un numero di $n$ bit. Oltre all'ingresso $x$ e all'uscita $z$ ha due segnali di controllo. Il *clock* sale e scende con un ritmo fisso, come un orologio, e scandisce il tempo; nei disegni il suo filo è tratteggiato. Il *WE* (_write enable_, "scrittura abilitata") dice se scrivere. Quando clock e WE valgono 1 il registro ricorda $x$, e da lì in poi $z$ vale $x$; altrimenti continua a ricordare il valore di prima, come un foglio su cui resta scritto l'ultimo numero finché non lo si cancella.
+
+#figura(canvas(length: 0.8cm, {
     import draw: *
     rect((0, 0), (2.4, -1.2), fill: azzurro); content((1.2, -0.6), [registro])
     content((1.2, 1.1), $x$); fr((1.2, 0.85), (1.2, 0)); bus((1.2, 0.45), $n$)
     fr((1.2, -1.2), (1.2, -2)); content((1.2, -2.3), $z$); bus((1.2, -1.6), $n$)
     fr((-1.2, -0.3), (0, -0.3), stroke: (dash: "dashed")); content((-1.4, -0.3), anchor: "east", text(9pt)[clock])
     fr((-1.2, -0.9), (0, -0.9)); content((-1.4, -0.9), anchor: "east", text(9pt)[WE])
-  }),
-  [Se *clock = 1 e WE = 1* (_write enable_, "scrittura abilitata"), il registro si ricorda l'ingresso $x$ di $n$ bit: da lì in poi $z$ vale $x$. Altrimenti continua a ricordare il valore di prima, come un foglio dove resta scritto l'ultimo numero finché non lo si cancella. Il clock è il segnale che sale e scende a ritmo fisso, visto all'inizio; nei disegni il suo filo è tratteggiato.],
-))
+  }), [Il registro: ingresso e uscita da $n$ bit, clock e WE])
 
-Ci si arriva in quattro passi, dal più semplice, facendo prima il circuito per *un bit*.
+Il registro si costruisce in quattro passi, e ognuno risolve un problema di quello prima. Nel disegno ogni riquadro è un passo, con quello che sa fare; sulle frecce, in rosso, il problema che il passo dopo risolve. Come per il MUX e il full adder, si progetta il circuito per *un bit*: il registro da $n$ bit ne mette $n$ uno accanto all'altro.
 
-#video("13", "12:25", "27:21")Il primo è il *latch SR* (_Set Reset_): due porte NOR (OR seguito da NOT) con le uscite *incrociate*, cioè l'uscita di ognuna torna indietro come ingresso dell'altra. $S = 1$ vuol dire "ricordati 1", $R = 1$ "ricordati 0".
+#figura(canvas(length: 0.75cm, {
+  import draw: *
+  let passi = (([latch SR], [ricorda un bit]), ([latch D], [scrive quando \ il clock vale 1]), ([flip-flop], [scrive quando \ il clock sale]), ([registro], [$n$ bit, scrive \ solo se WE = 1]))
+  let problemi = ([$S = R = 1$ \ vietato], [trasparente col \ clock alto], [manca il \ "se scrivere"])
+  for (k, (nome, cosa)) in passi.enumerate() {
+    let x = k * 5.6
+    rect((x, 0), (x + 3.2, -1.6), fill: if k == 3 { rgb("#fff3c4") } else { azzurro })
+    content((x + 1.6, -0.45), text(9pt, strong(nome)))
+    content((x + 1.6, -1.05), align(center, text(7pt, cosa)))
+    if k < 3 {
+      fr((x + 3.2, -0.8), (x + 5.6, -0.8))
+      content((x + 4.4, -1.45), align(center, text(7pt, fill: red, problemi.at(k))))
+    }
+  }
+}), [Dal latch SR al registro])
+
+#video("13", "12:25", "27:21")Il primo passo è il *latch SR* (_Set Reset_): due porte NOR (OR seguito da NOT) con le uscite *incrociate*, cioè l'uscita di ognuna torna indietro come ingresso dell'altra. $S = 1$ vuol dire "ricordati 1", $R = 1$ "ricordati 0".
 
 #let sr-s = (0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1)
 #let sr-r = (0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1)
@@ -1623,12 +1638,17 @@ Ci si arriva in quattro passi, dal più semplice, facendo prima il circuito per 
   ),
 ))
 
-Per capire perché funziona si segue il segnale. Con $R = 1$, $S = 0$: la NOR in alto ha un ingresso a 1, quindi dà $Q = 0$. Quello 0 torna nella NOR in basso, che ora ha tutti e due gli ingressi a 0 e dà $overline(Q) = 1$. A sua volta l'1 torna in alto, dove non cambia niente: il circuito si è *stabilizzato*. Se ora anche $R$ torna a 0, gli ingressi che rientrano dall'altra porta sono ancora quelli di prima, e $Q = 0$ resta. Con $S = 1$ succede lo stesso al contrario, perché il circuito è simmetrico. Il valore resta finché c'è corrente.
+Perché ricorda? Basta seguire il segnale, sapendo che una NOR dà 1 solo quando tutti e due gli ingressi sono 0. Per esempio, un reset:
++ $R = 1$, $S = 0$: la NOR in alto ha un ingresso a 1, quindi dà $Q = 0$.
++ Quello 0 entra nella NOR in basso insieme a $S = 0$: tutti e due a 0, quindi $overline(Q) = 1$.
++ $overline(Q) = 1$ torna nella NOR in alto, che dava già 0: non cambia niente, il circuito è *stabile*.
++ Ora $R$ torna a 0. La NOR in alto riceve ancora $overline(Q) = 1$ e continua a dare $Q = 0$: lo 0 resta ricordato anche senza il reset.
+Con $S = 1$ succede lo stesso al contrario, perché il circuito è simmetrico. Il valore resta finché c'è corrente.
 
 #figura(onde(righe: (2, 6, 10), (($S$, sr-s), ($R$, sr-r), ($Q$, sr-q), ($overline(Q)$, sr-nq))),
   [All'inizio $Q$ non è definito (grigio). Set, poi tutto a 0: ricorda 1. Reset: ricorda 0. Alla fine $S = R = 1$: $Q$ e $overline(Q)$ valgono tutti e due 0])
 
-#video("13", "29:05", "40:55")Il problema è proprio $S = R = 1$: entrambe le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Si risolve col secondo passo, il *latch D*: davanti al latch SR si mettono due AND, e due ingressi nuovi, il *clock*, che dice *quando* scrivere (quando vale 1), e $D$, che dice *cosa* scrivere. A $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$: $S$ e $R$ non possono più valere 1 insieme.
+#video("13", "29:05", "40:55")Il latch SR ha un difetto: con $S = R = 1$ tutte e due le NOR danno 0, e $Q$ e $overline(Q)$ non sono più uno il negato dell'altro. Il secondo passo, il *latch D*, rende impossibile questo caso. Gli ingressi diventano due: $D$, il bit da scrivere, e il clock, che dice *quando* scrivere (quando vale 1). Davanti al latch SR si mettono due AND: a $S$ arriva clock AND $D$, a $R$ arriva clock AND $overline(D)$. Siccome $D$ e $overline(D)$ non valgono mai 1 insieme, $S$ e $R$ neanche; e col clock a 0 tutti e due valgono 0, quindi il latch ricorda.
 
 #let dl-n = 16
 #let dl-c = clock(dl-n)
@@ -1648,15 +1668,15 @@ Per capire perché funziona si segue il segnale. Con $R = 1$, $S = 0$: la NOR in
     circle((0.4, -0.2), radius: 0.05, fill: black); line((0.4, -0.2), (0.4, 1.6), (1.44, 1.6)); circle((1.52, 1.6), radius: 0.08)
     fr((4.4, 1.8), (5.1, 1.8)); content((5.4, 1.8), $Q$)
     fr((4.4, 0), (5.1, 0)); content((5.4, 0), $overline(Q)$)
-  }), [Latch D (il clock si disegna tratteggiato)]),
+  }), [Latch D]),
   figura(onde(righe: fronti(dl-n), (([clock], dl-c), ($D$, dl-d),
     ($S$, range(dl-n).map(i => dl-c.at(i) * dl-d.at(i))), ($R$, range(dl-n).map(i => dl-c.at(i) * (1 - dl-d.at(i)))), ($Q$, dl-q))),
     [Col clock alto: $D = 0$ fa un reset, $D = 1$ un set. Col clock basso $Q$ non cambia]),
 ))
 
-Ma anche qui c'è un problema: *mentre il clock è 1* il latch copia $D$ in continuazione (si dice che è *trasparente*). Se $D$ cambia mentre il clock è alto, nello stesso ciclo arrivano un set e un reset, e $Q$ cambia due volte (terzo ciclo: prima un reset, poi un set). Invece in un ciclo di clock si deve scrivere un solo valore. Quindi *$D$ non può cambiare mentre il clock vale 1*.
+Resta un problema: *mentre il clock vale 1* il latch copia $D$ in continuazione, cioè è *trasparente*: $D$ passa dritto fino a $Q$. Se $D$ cambia mentre il clock è alto, $Q$ cambia con lui, e in un ciclo vengono scritti due valori (nel terzo ciclo della figura: prima un reset, poi un set). Invece in un ciclo se ne deve scrivere uno solo. Con il latch D bisognerebbe quindi tenere *$D$ fermo per tutto il tempo in cui il clock vale 1*.
 
-#video("13", "40:56", "49:06")Il terzo passo toglie anche questo vincolo: il *flip-flop*, fatto di due latch D in fila. Il $Q$ del primo, il *master*, è il $D$ del secondo, lo *slave*. Lo slave riceve il clock, il master il clock *negato*: quando scrive uno, l'altro è *opaco* (non fa passare niente).
+#video("13", "40:56", "49:06")Il terzo passo toglie questo vincolo. Il *flip-flop* è fatto di due latch D in fila. Il $Q$ del primo, il *master*, è il $D$ del secondo, lo *slave*. Lo slave riceve il clock, il master il clock *negato*: quando scrive uno, l'altro è *opaco* (non fa passare niente).
 
 #block(breakable: false, grid(columns: (auto, auto), gutter: 2.5em, align: horizon,
   figura(canvas(length: 0.8cm, {
@@ -1686,7 +1706,9 @@ Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *s
 #figura(onde(righe: fronti(dl-n), (([clock], dl-c), ($D$, dl-d), ([$Q$ latch D], dl-q), ([$Q$ flip-flop], ff-q))),
   [Stessi ingressi: il latch D segue $D$ per tutto il tempo in cui il clock è alto, il flip-flop prende $D$ solo sul fronte di salita (linee tratteggiate)])
 
-#video("13", "49:11", "51:06")L'ultimo passo è il *write enable*: invece di dare il clock direttamente al flip-flop, gli si dà clock AND WE. Con WE = 0 l'AND dà sempre 0, il flip-flop non vede mai salire il clock e tiene il suo valore. Un *registro da $n$ bit* è una fila di $n$ flip-flop, ognuno col suo bit, con lo stesso clock e lo stesso WE.
+#video("13", "49:11", "51:06")Il flip-flop però scrive a ogni fronte di salita, e manca un modo per dire *se* scrivere. L'ultimo passo aggiunge il WE: invece di dare il clock direttamente al flip-flop, gli si dà clock AND WE. Con WE = 0 l'AND dà sempre 0, il flip-flop non vede mai salire il clock e tiene il suo valore. Il *registro da $n$ bit*, infine, è una fila di $n$ flip-flop, uno per bit, con lo stesso clock e lo stesso WE.
+
+Ecco il registro che si voleva all'inizio, con una precisazione: non scrive per tutto il tempo in cui il clock vale 1, ma solo *nell'istante in cui sale*.
 
 #block(breakable: false, grid(columns: (auto, 1fr), gutter: 2em, align: horizon,
   figura(canvas(length: 0.8cm, {
@@ -1703,10 +1725,10 @@ Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *s
       fr((2.4, y), (3.1, y)); content((3.4, y), $z_#k$)
     }
   }), [Registro da 2 bit]),
-  [Ogni bit costa sempre più porte: il latch SR 2, il latch D 4 (il NOT non si conta), il flip-flop 8, con il WE 9.
-
-   Il registro si scrive sul fronte di salita del clock, ma l'uscita è stabile solo dopo un piccolo ritardo, $t_"reg"$, il tempo per attraversare le porte dello slave. Da lì fino al fronte di salita successivo l'uscita *non cambia*.],
+  [Ogni passo costa più porte per ogni bit: il latch SR 2, il latch D 4 (il NOT non si conta), il flip-flop 8, con il WE 9.],
 ))
+
+Dopo il fronte di salita l'uscita non è pronta subito: ci vuole un piccolo ritardo, $t_"reg"$, il tempo per attraversare le porte dello slave. Da lì fino al fronte di salita successivo l'uscita *non cambia*.
 
 #figura(canvas(length: 0.8cm, {
   import draw: *
@@ -1721,7 +1743,7 @@ Col clock basso scrive il master, e lo slave tiene fermo $Q$. Quando il clock *s
   line((2.3, -0.4), (5.8, -0.4), mark: (start: "stealth", end: "stealth")); content((4.05, -0.75), text(8pt)[$Q$ non cambia])
 }), [Dopo il fronte di salita il registro è stabile per tutto il ciclo])
 
-#video("14", "04:15", "08:21")Il latch SR si può anche simulare in Verilog: si scrive con le porte, e le uscite incrociate sono fili. Le forme d'onda del latch SR viste prima sono quelle che dà gtkwave simulandolo.
+#video("14", "04:15", "08:21")Il latch SR si può anche provare in Verilog: ogni NOR diventa un OR seguito da un NOT, e i collegamenti incrociati sono fili. Le forme d'onda del latch SR viste prima sono quelle che dà gtkwave simulandolo.
 
 ```verilog
 module SR(output q, output notq, input s, input r);
