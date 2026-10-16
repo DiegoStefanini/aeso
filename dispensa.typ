@@ -1402,7 +1402,7 @@ endmodule
 #align(center, table(columns: 2, align: (left, left), inset: 5pt,
   [riga], [cosa fa],
   [`reg x, y, c;`], [fili a cui *il test* dà un valore con `=`, e che lo tengono finché non lo cambia: gli ingressi],
-  [`wire z;`], [un filo e basta: porta quello che gli manda il circuito. È l'uscita, e non gli si può assegnare niente],
+  [`wire z;`], [un filo e basta: porta quello che gli manda il circuito. È l'uscita: il test non gli assegna niente con `=`, il valore glielo dà il circuito (dentro un modulo, un `assign`)],
   [`mux m(z, x, y, c);`], [crea una *copia* (_istanza_) del MUX e la collega ai fili, nell'ordine dei parametri del modulo. Non è una chiamata di funzione: è un pezzo di hardware sempre acceso, che ricalcola `z` ogni volta che cambia un ingresso. `m` è il nome della copia: serve perché se ne possono creare quante se ne vuole],
   [`integer i;`], [un intero, come `int` in C],
   [`initial begin … end`], [i comandi fra `begin` ed `end` (le graffe del C) si eseguono una volta sola, all'accensione],
