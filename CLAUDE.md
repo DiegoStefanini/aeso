@@ -7,7 +7,7 @@ Workflow generale: `../CLAUDE.md`.
 - Esame: 3+3 prove intermedie (risposta multipla, micro esercizi, assembler). Con 2 prove almeno "quasi sufficiente" per semestre si è esonerati dallo scritto. Default: scritto + orale; l'orale chiede collegamenti fra argomenti e ragionamento su situazioni nuove.
 - Prove intermedie del primo semestre: 20 ott 2026 (reti combinatorie e sequenziali), 17 nov (assembler), 15 dic (microarchitettura). Prova: form con circa 20 domande a risposta multipla in 30 minuti.
 
-Dispensa: si scrive normalmente (la pausa dell'11 ott è annullata dal 12 ott). In più Diego usa un progetto tutor su claude.ai, con gli esercizi su carta di cui manda la foto; istruzioni in `tutor.md`. Nel progetto carica man mano i fogli nuovi, le trascrizioni e la dispensa aggiornata. Se Diego cambia come vuole il tutor, si aggiorna `tutor.md` e lui lo reincolla nel progetto.
+Dispensa: si scrive normalmente. Il progetto tutor su claude.ai non si usa più (16 ott): gli esercizi si fanno qui (es. `esercizi-verilog/`, con test automatici).
 
 Video delle lezioni: su Stream, cartella `General/Registrazioni/` del team, file `aeso-XX.mp4` con gli stessi numeri dei fogli del prof (dal 13 ott un file per giorno, `aeso-1718.mp4` → `#video("1718", …)`) (la trascrizione dice in quale file sta ogni minuto). Nella dispensa `#video("09", "24:21", "29:54")` mette nel margine un ▶ che apre il video a quel minuto e dice fin dove ascoltare: aggiungilo a ogni concetto importante delle lezioni nuove.
 
