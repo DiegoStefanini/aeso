@@ -1350,7 +1350,17 @@ $ vvp a.out                  # simula: scrive test.vcd (basta anche ./a.out)
 $ gtkwave test.vcd           # mostra i segnali nel tempo
 ```
 
-Ogni pezzo di circuito è un *modulo*, che si scrive come una funzione: i parametri sono i fili d'ingresso (`input`) e d'uscita (`output`), di solito prima le uscite. Un nome solo vuol dire un filo da 1 bit. Il MUX si può scrivere in tre modi.
+È lo stesso giro del C: `iverilog` fa quello che fa `gcc`, controlla gli errori e crea `a.out`; `vvp` lo esegue, cioè *simula*: fa finta di essere il circuito e registra cosa fa. A `iverilog` si danno *tutti* i file in cui stanno i moduli usati, in qualunque ordine, come a `gcc` più file `.c`.
+
+Ogni pezzo di circuito è un *modulo*, che si scrive come una funzione: i parametri sono i fili d'ingresso (`input`) e d'uscita (`output`), di solito prima le uscite. Un nome solo vuol dire un filo da 1 bit.
+
+```verilog
+module nome(output z, input x, input y);   // testa: il nome e i fili
+  ...                                      // corpo: come si calcolano le uscite
+endmodule
+```
+
+Il MUX si può scrivere in tre modi.
 
 #video("11", "09:14", "13:52")*1. Come tabella di verità*, con una `primitive`. Ogni riga dà i valori degli ingressi nell'ordine dei parametri, poi `:` e l'uscita; `?` è il valore che non conta (il − delle tabelle).
 
@@ -1368,27 +1378,42 @@ endprimitive
 
 #nota[Una `primitive` ha *una sola uscita* da 1 bit, e la tabella deve coprire *tutte* le combinazioni, anche quelle con uscita 0. Se mancano, lì l'uscita non vale 0 ma `x` (non definito).]
 
-#video("11", "14:44", "23:31")Prima di vedere gli altri due modi, questo MUX si può già provare. Si scrive un *modulo di test*, senza parametri: è il "main". Dentro si crea una *copia* (istanza) del circuito: non è una chiamata di funzione ma un pezzo di hardware, e se ne possono creare quante se ne vuole, ognuna col suo nome.
+#video("11", "14:44", "23:31")Prima di vedere gli altri due modi, questo MUX si può già provare. Si scrive un *modulo di test*, senza parametri: è il "main". È un banco di prova, e lo schema è sempre lo stesso: un `reg` per ogni ingresso del circuito (un interruttore), un `wire` per ogni uscita (una lampadina), una copia del circuito collegata a quei fili, e il programma che muove gli interruttori.
 
 ```verilog
 module test;
-  reg x, y, c;                 // ingressi: il test ci scrive i valori
-  wire z;                      // uscita: si può solo leggere
-  mux m(z, x, y, c);           // una copia del MUX, di nome m
+  reg x, y, c;                 // ingressi
+  wire z;                      // uscita
+  mux m(z, x, y, c);           // il circuito da provare
   integer i;
-  initial begin                // eseguito all'accensione
-    $dumpfile("test.vcd");     // dove salvare i risultati
-    $dumpvars;                 // salva ogni cambiamento dei segnali
+  initial begin
+    $dumpfile("test.vcd");
+    $dumpvars;
+    $monitor("x=%b y=%b c=%b z=%b", x, y, c, z);
     for (i = 0; i < 8; i++) begin
       {x, y, c} = i;           // i in binario: x è il bit più a sinistra
-      #2;                      // aspetta 2 unità di tempo
+      #2;
     end
-    $finish;                   // fine, altrimenti la simulazione non termina
+    $finish;
   end
 endmodule
 ```
 
-Le graffe `{x, y, c}` *mettono insieme* tre fili in un numero da 3 bit: il `for` da 0 a 7 prova così tutte le combinazioni degli ingressi. Con `$monitor(...)` il test stampa anche i valori a ogni cambiamento, e con un `if` può controllare da solo se l'uscita è quella giusta.
+#align(center, table(columns: 2, align: (left, left), inset: 5pt,
+  [riga], [cosa fa],
+  [`reg x, y, c;`], [fili a cui *il test* dà un valore con `=`, e che lo tengono finché non lo cambia: gli ingressi],
+  [`wire z;`], [un filo e basta: porta quello che gli manda il circuito. È l'uscita, e non gli si può assegnare niente],
+  [`mux m(z, x, y, c);`], [crea una *copia* (_istanza_) del MUX e la collega ai fili, nell'ordine dei parametri del modulo. Non è una chiamata di funzione: è un pezzo di hardware sempre acceso, che ricalcola `z` ogni volta che cambia un ingresso. `m` è il nome della copia: serve perché se ne possono creare quante se ne vuole],
+  [`integer i;`], [un intero, come `int` in C],
+  [`initial begin … end`], [i comandi fra `begin` ed `end` (le graffe del C) si eseguono una volta sola, all'accensione],
+  [`$dumpfile("test.vcd");` \ `$dumpvars;`], [registrano nel file ogni cambiamento di ogni segnale: il file si apre con gtkwave, dove i segnali stanno sotto `test` → `m`],
+  [`$monitor("…", x, z);`], [stampa una riga ogni volta che cambia un segnale della lista. Come nella `printf`, `%b` scrive il valore in binario e `%d` in decimale. `$display` stampa una volta sola],
+  [`{x, y, c} = i;`], [le graffe *mettono insieme* tre fili in un numero da 3 bit: con `i` da 0 a 7 si provano tutte le combinazioni],
+  [`#2;`], [aspetta 2 unità di tempo (`#1` vale circa un $Delta t$): il circuito ha il tempo di rispondere],
+  [`$finish;`], [ferma la simulazione, che altrimenti non finirebbe mai],
+))
+
+Con un `if` il test può anche controllare da solo se l'uscita è quella giusta.
 
 #figura(onde(w: 0.65, range(3).map(k => ((($x$, $y$, $c$).at(k)), range(8).map(i => calc.rem(calc.quo(i, calc.pow(2, 2 - k)), 2))))
   + (($z$, range(8).map(i => if calc.rem(i, 2) == 0 { calc.quo(i, 4) } else { calc.rem(calc.quo(i, 2), 2) })),)),
@@ -1396,7 +1421,7 @@ Le graffe `{x, y, c}` *mettono insieme* tre fili in un numero da 3 bit: il `for`
 
 #video("11", "25:03", "30:05")Gli altri due modi di scrivere il MUX hanno gli stessi parametri, quindi il test di prima li prova senza cambiare niente.
 
-*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
+*2. Come formula*, con un `module` e `assign`: ogni volta che cambia un ingresso, ricalcola l'uscita. Un'uscita = un `assign`. È così che si dà un valore a un `wire`, e le uscite di un modulo lo sono; il `=` dentro `initial` vale solo per i `reg`. L'AND lega più dell'OR, come il prodotto sulla somma, quindi qui le parentesi non servono.
 
 ```verilog
 module mux(output z, input x, input y, input c);
@@ -1408,6 +1433,8 @@ endmodule
   [], [AND], [OR], [NOT],
   [in Verilog], [`&&` oppure `&`], [`||` oppure `|`], [`!` oppure `~`],
 ))
+
+Le due forme coincidono solo sui fili da 1 bit. Su più bit `&`, `|`, `~` lavorano bit per bit (`~` di 0101 è 1010), mentre `&&`, `||`, `!` trattano il numero come vero (diverso da 0) o falso, come in C, e danno un bit solo (`!` di 0101 è 0).
 
 Si possono usare anche le *porte già pronte* `and`, `or`, `not`: il primo parametro è l'uscita. I collegamenti interni sono fili, dichiarati con `wire`.
 
@@ -1421,7 +1448,7 @@ module mux(output z, input x, input y, input c);
 endmodule
 ```
 
-*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0, e il parametro N ha un valore che si può cambiare per ogni copia del modulo. Nel test, per esempio, `mux #(1) m(z, x, y, c);` crea una copia con N = 1.
+*3. Come in C*, con l'espressione `cond ? a : b`: vale `a` se `cond` è vera, altrimenti `b`. Qui gli ingressi hanno *N bit*: `[N-1:0]` vuol dire i bit da $N-1$ a 0. Un bit solo si prende con le quadre: `x[0]` è il meno significativo, `x[N-1]` il più significativo, e `x[3:0]` sono i 4 bit più a destra. Il parametro N ha un valore che si può cambiare per ogni copia del modulo. Nel test, per esempio, `mux #(1) m(z, x, y, c);` crea una copia con N = 1.
 
 ```verilog
 module mux #(parameter N = 32)
@@ -1475,7 +1502,23 @@ module fa(output c, output z, input x, input y, input r);
 endmodule
 ```
 
-Allo stesso modo due `fa`, col riporto del primo portato al secondo da un `wire`, fanno il sommatore a 2 bit; e così via fino a un processore intero, un pezzo alla volta, provando ogni pezzo da solo.
+Ogni copia si collega nell'ordine dei parametri della sua testa: `ris` riceve `z, x, y, r`. Allo stesso modo due `fa` fanno il sommatore a 2 bit, uno per colonna. Il riporto della colonna di destra va a quella di sinistra: è un collegamento interno, quindi un `wire`, su cui una copia scrive e l'altra legge.
+
+```verilog
+module add2(output c, output [1:0] z, input r, input [1:0] x, input [1:0] y);
+  wire rr;                           // il riporto fra le due copie
+  fa fa0(rr, z[0], x[0], y[0], r);   // colonna di destra: bit 0
+  fa fa1(c, z[1], x[1], y[1], rr);   // colonna di sinistra: bit 1
+endmodule
+```
+
+E così via fino a un processore intero, un pezzo alla volta, provando ogni pezzo da solo.
+
+#nota[*Gli errori più comuni.* `iverilog` dice file e riga (`es2.v:4: syntax error`). Si guarda prima l'errore più in alto: spesso gli altri sono solo conseguenze (un `endmodule` scritto male fa sembrare "già dichiarati" tutti i fili del modulo che segue).
+- `Unknown module type: fa`: nel comando manca il file dove sta `fa`.
+- `'x' is not a valid l-value … declared here as a wire`: si sta assegnando un valore a un `wire`; gli ingressi del test vanno dichiarati `reg`.
+- `expects 1 bit(s), given 32` (avviso): uno `0` scritto da solo è un numero da 32 bit; per un filo da 1 bit si scrive `1'b0`.
+- Un'uscita che vale `z` è un filo non collegato a niente, per esempio un'uscita del modulo su cui nessuna copia scrive.]
 
 #video("15", "29:40", "36:23")Resta da vedere come funziona una cella dell'FPGA. Ogni cella calcola la sua funzione senza porte su misura: tiene la colonna d'uscita della tabella di verità in un registro, e gli ingressi, come controllo di un MUX, scelgono quale bit esce. È un'idea che vale anche fuori dalle FPGA. Per il display a sette segmenti, invece di sette formule, si mettono le dieci righe d'uscita della tabella in dieci registri da 7 bit, collegati agli ingressi di un MUX comandato dalla cifra $x_3 x_2 x_1 x_0$: 4 bit di controllo, quindi 16 ingressi. La cifra 4 = 0100 fa passare il registro con 0110011, e i 7 fili d'uscita vanno ai segmenti. Il ritardo è la lettura del registro più quello del MUX. Gli ingressi da 1010 a 1111 vanno comunque riempiti, per esempio con tutto spento.
 
@@ -2017,8 +2060,8 @@ endmodule
 
 #block(breakable: false, grid(columns: (1fr, auto), gutter: 2em, align: horizon,
   [
-    - `reg` è proprio un registro: Verilog lo costruisce con dei flip-flop. Nel test si usava per gli ingressi perché il test ci scrive un valore e lo tiene.
-    - `initial` si esegue una volta sola, quando il modulo si accende.
+    - `stato` è un `reg`, come gli ingressi del test: tiene il valore che gli si assegna. Qui lo si assegna solo sul fronte del clock, quindi diventa un registro vero, fatto di flip-flop.
+    - `initial` funziona come nel test: si esegue una volta, all'accensione.
     - `always @(...)` esegue il blocco ogni volta che cambia qualcosa nella lista fra parentesi. `posedge clock` vuol dire "quando il clock passa da 0 a 1" (fronte di salita), `negedge clock` "quando passa da 1 a 0" (fronte di discesa).
     - Quando cambia `stato` cambia anche `z`: subito dopo il fronte l'uscita è il valore appena scritto.
   ],
