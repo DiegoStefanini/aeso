@@ -1915,7 +1915,24 @@ Codificando $S_0 = 0$, $S_1 = 1$, una sola tabella dà tutte e due le funzioni, 
 
 Gli automi di Mealy di solito sono più compatti: un automa di Moore per lo stesso problema ha lo stesso numero di stati o qualcuno in più.
 
-#video("16", "07:31", "15:00")Un uso tipico degli automi è *riconoscere una stringa*: arriva un simbolo per ciclo, e l'uscita vale 1 quando gli ultimi simboli formano la stringa cercata. Esempio: riconoscere $a b b a$ sull'alfabeto ${a, b}$, senza sovrapposizioni (l'$a$ finale di un $a b b a$ non conta come inizio del successivo). Ogni stato ricorda quanta parte della stringa si è già vista: $S_0$ niente, $S_1$ "$a$", $S_2$ "$a b$", $S_3$ "$a b b$".
+#video("16", "07:31", "15:00")Un uso tipico degli automi è *riconoscere una stringa*: arriva un simbolo per ciclo, e l'uscita vale 1 quando gli ultimi simboli formano la stringa cercata. Esempio: riconoscere $a b b a$ sull'alfabeto ${a, b}$, *senza sovrapposizioni*.
+
+#block(sticky: true)[Due copie della stringa *si sovrappongono* quando hanno dei simboli in comune, cioè la fine di una è anche l'inizio della successiva. Nella sequenza $a b b a b b a$ succede con la $a$ in mezzo:]
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  let p = 0.7
+  rect((3 * p - 0.3, -0.3), (3 * p + 0.3, 0.3), fill: azzurro, stroke: none)
+  for (i, s) in ($a$, $b$, $b$, $a$, $b$, $b$, $a$).enumerate() { content((i * p, 0), text(11pt, s)) }
+  line((-0.3, 0.4), (-0.3, 0.6), (3 * p + 0.3, 0.6), (3 * p + 0.3, 0.4), stroke: blu)
+  content((1.5 * p, 0.95), text(8pt, fill: blu)[prima $a b b a$])
+  line((3 * p - 0.3, -0.4), (3 * p - 0.3, -0.6), (6 * p + 0.3, -0.6), (6 * p + 0.3, -0.4), stroke: verde)
+  content((4.5 * p, -0.95), text(8pt, fill: verde)[seconda $a b b a$])
+}), [Due $a b b a$ sovrapposte: la $a$ evidenziata è la fine della prima (in blu) e l'inizio della seconda (in verde)])
+
+*Con* sovrapposizioni qui si riconoscono due $a b b a$. *Senza*, un simbolo già usato per riconoscere la stringa non si riusa: la $a$ finale della prima non conta come inizio della seconda, quindi se ne riconosce una sola, e per la seconda servono quattro simboli nuovi ($a b b a a b b a$). Nell'automa la differenza sta tutta in dove si va dopo aver riconosciuto la stringa.
+
+Ogni stato ricorda quanta parte della stringa si è già vista: $S_0$ niente, $S_1$ "$a$", $S_2$ "$a b$", $S_3$ "$a b b$".
 
 #figura(canvas(length: 0.8cm, {
   import draw: *
@@ -1926,7 +1943,7 @@ Gli automi di Mealy di solito sono più compatti: un automa di Moore per lo stes
 }), [Riconoscitore di $a b b a$ (Mealy)])
 
 - Una $a$ quando si aspettava una $b$ non butta via tutto: quella $a$ può essere l'inizio della stringa, quindi si va (o si resta) in $S_1$.
-- In $S_3$ una $b$ fa $a b b b$: si riparte da capo. Una $a$ completa $a b b a$: uscita 1, l'unica dell'automa, e si torna in $S_0$.
+- In $S_3$ una $b$ fa $a b b b$: si riparte da capo. Una $a$ completa $a b b a$: uscita 1, l'unica dell'automa, e si torna in $S_0$. Con sovrapposizioni si andrebbe invece in $S_1$, perché quella $a$ sarebbe anche l'inizio della prossima.
 
 Con Moore l'uscita sta negli stati, quindi serve uno stato in più: $S_4$, "ho appena visto $a b b a$", l'unico con uscita 1. Da lì si riparte: una $a$ è l'inizio di una nuova stringa e porta in $S_1$, una $b$ riporta in $S_0$.
 
