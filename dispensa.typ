@@ -1844,7 +1844,21 @@ Manca un posto dove tenere lo stato: è un *registro*. Lo schema di una rete di 
   box(stroke: 0.6pt, inset: 7pt)[5. ciclo \ di clock $tau$],
 ))))
 
-Il registro deve avere abbastanza bit per numerare tutti gli stati: 2 stati, 1 bit; 4 stati, 2 bit. Il *ciclo di clock* $tau$ deve bastare perché si stabilizzino *tutte e due* le reti, più il tempo di scrittura del registro:
+Il registro deve avere abbastanza bit per numerare tutti gli stati: 2 stati, 1 bit; 4 stati, 2 bit. Il *ciclo di clock* $tau$ è il tempo fra due fronti di salita. Dopo un fronte, il registro mostra il nuovo stato dopo $t_"reg"$. Da lì le reti $S'$ e $Z$ lavorano *nello stesso momento*, perché leggono tutte e due il registro: il fronte dopo può arrivare solo quando ha finito la più lenta. Quindi conta il *massimo* dei due tempi, non la somma. Nel disegno ogni barra è il tempo in cui una rete si stabilizza:
+
+#figura(canvas(length: 0.8cm, {
+  import draw: *
+  for x in (0, 5.4) { line((x, 1.6), (x, -1.2), stroke: (dash: "dashed")) }
+  content((0, 1.9), text(8pt)[fronte]); content((5.4, 1.9), text(8pt)[fronte dopo])
+  content((-1.1, 1), text(8pt)[registro]); content((-1.1, 0.3), $S'$); content((-1.1, -0.4), $Z$)
+  rect((0, 0.8), (1.2, 1.2), fill: luma(225), stroke: none); content((0.6, 1), text(8pt)[$t_"reg"$])
+  rect((1.2, 0.8), (5.4, 1.2), stroke: 0.8pt + blu); content((3.3, 1), text(8pt)[nuovo stato])
+  rect((1.2, 0.1), (5.4, 0.5), fill: azzurro); content((3.3, 0.3), text(8pt)[$T_(S')$])
+  rect((1.2, -0.6), (3.4, -0.2), fill: azzurro); content((2.3, -0.4), text(8pt)[$T_Z$])
+  line((0, -1), (5.4, -1), mark: (start: "stealth", end: "stealth")); content((2.7, -1.35), text(8pt)[$tau = t_"reg" + max(T_(S'), T_Z)$])
+}), [Le due reti partono insieme: il ciclo aspetta la più lenta])
+
+Per la parità $S'$ costa $2 Delta t$ e $Z$, un NOT, costa $0$:
 
 $ tau = max(T_(S'), T_Z) + t_"reg" #h(3em) "parità:" quad tau = max(2 Delta t, 0) + t_"reg" = 2 Delta t + t_"reg" $
 
@@ -1908,10 +1922,12 @@ Codificando $S_0 = 0$, $S_1 = 1$, una sola tabella dà tutte e due le funzioni, 
 
 #block(breakable: false, align(center, grid(columns: 2, gutter: 3em, align: horizon,
   tvb(($S$, $I$), ($S'$, b => calc.rem(b.sum(), 2)), ($O$, b => 1 - calc.rem(b.sum(), 2))),
-  [$ S' &= overline(S) I + S overline(I) \ O &= overline(S) thin overline(I) + S I $
-   Lo schema è quello di Mealy qui sopra, con un registro da 1 bit. \
-   $ tau = max(T_(S'), T_Z) + t_"reg" = max(2 Delta t, 2 Delta t) + t_"reg" = 2 Delta t + t_"reg" $],
+  [$ S' &= overline(S) I + S overline(I) \ O &= overline(S) thin overline(I) + S I $],
 )))
+
+#video("16", "05:35", "07:25")Lo schema è quello di Mealy qui sopra, con un registro da 1 bit. Nel calcolo di $tau$ cambia solo $Z$: con Moore era un NOT ($0$), ora $O$ ha la stessa forma di $S'$, due AND e un OR, quindi anche $Z$ costa $2 Delta t$. Le due reti lavorano insieme, e il massimo resta $2 Delta t$:
+
+$ tau = max(T_(S'), T_Z) + t_"reg" = max(2 Delta t, 2 Delta t) + t_"reg" = 2 Delta t + t_"reg" $
 
 Gli automi di Mealy di solito sono più compatti: un automa di Moore per lo stesso problema ha lo stesso numero di stati o qualcuno in più.
 
