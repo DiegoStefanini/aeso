@@ -13,6 +13,8 @@ Video delle lezioni: su Stream, cartella `General/Registrazioni/` del team, file
 
 Libro di testo: Harris & Harris, *Sistemi digitali e architettura dei calcolatori*, in `slide/libro-harris.pdf` (pagina del libro + 9 = pagina del PDF). Il prof spiega molto da lì: per ogni lezione leggi anche il paragrafo corrispondente e usalo per spiegare meglio (termini, figure), senza aggiungere argomenti non fatti in aula. Cap. 2 reti combinatorie, cap. 3 latch/flip-flop/macchine a stati, cap. 4 HDL (ma il prof usa Verilog 2003, non il SystemVerilog del libro: per la sintassi vale `slide/Verilog.pdf`).
 
+Verilog: prima di mettere codice nella dispensa, compilalo con `iverilog`. Trappola di Icarus 13: `parameter N = …;` scritto dentro il modulo **dopo** una testa che usa già `[N-1:0]` non compila (_Unable to bind parameter_), anche negli esempi del prof. Nella dispensa si scrive `module m #(parameter N = 32) (output [N-1:0] z, …);`.
+
 ## Mappa materiale ↔ lezione
 
 Ogni numero del file del prof = **un'ora** di lezione. Diego ha sempre due ore di fila, quindi un giorno = due numeri.
